@@ -4,12 +4,9 @@
 
 namespace solitairecpp {
 
-enum class ErrorType { InvalidCardRange, InvalidCardIndex };
-
 class Error {
 public:
   virtual std::string what() = 0;
-  virtual ErrorType type() = 0;
 
   // Checks if the error is of a certain type
   template <typename Derived>

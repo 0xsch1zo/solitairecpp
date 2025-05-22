@@ -8,6 +8,16 @@
 
 namespace solitairecpp {
 
+class ErrorInvaidCardRange : Error {
+  std::string what() { return "The card range supplied has the wrong color"; }
+};
+
+class ErrorInvalidCardIndex : Error {
+  std::string what() {
+    return "Tried to access a card at a non-existsent index";
+  }
+};
+
 enum class CardValue {
   Ace,
   Two,
@@ -39,9 +49,11 @@ typedef std::vector<Card> Cards;
 class CardRow {
 public:
   CardRow() = default;
-  std::expected<void, Error> AppendCards(const Cards &cards);
+  std::expected<void, Error> appendCards(const Cards &cards);
   std::expected<Cards, Error> getCardsFrom(size_t cardIndex);
-  std::vector<Card> cards_;
+
+private:
+  Cards cards_;
 };
 
 } // namespace solitairecpp
