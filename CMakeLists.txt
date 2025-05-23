@@ -13,6 +13,8 @@ project(solitairecpp)
 
 add_executable(solitairecpp
     ./src/main.cpp
+    ./src/solitairecpp/solitaire.cpp
+    ./src/solitairecpp/cards.cpp
 )
 
 target_include_directories(solitairecpp
@@ -20,7 +22,7 @@ target_include_directories(solitairecpp
 )
 
 target_compile_options(solitairecpp
-    PRIVATE -std=c++23
+    PRIVATE -std=c++23 -g
 )
 
 target_link_libraries(solitairecpp PRIVATE

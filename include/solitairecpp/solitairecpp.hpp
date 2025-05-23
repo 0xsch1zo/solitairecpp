@@ -1,20 +1,21 @@
 #pragma once
 
-#include <string>
+#include <memory>
+#include <solitairecpp/cards.hpp>
 
 namespace solitairecpp {
 
-class Error {
+class Game {
 public:
-  virtual std::string what() = 0;
+  // Add modes here
+  Game();
 
-  // Checks if the error is of a certain type
-  template <typename Derived>
-    requires std::is_base_of_v<Error, Derived>
-  bool is(Derived) {
-    Derived *d = dynamic_cast<Derived *>(this);
-    return d == nullptr;
-  }
+  void mainLoop();
+
+private:
+  Cards buildDeck();
+  std::unique_ptr<ReserveStack> reserveStack_ = nullptr;
+  std::unique_ptr<Tableau> tableau_ = nullptr;
 };
 
 } // namespace solitairecpp

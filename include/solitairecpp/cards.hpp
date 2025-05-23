@@ -1,27 +1,39 @@
 #pragma once
 
 #include <expected>
+#include <ftxui/component/component.hpp>
+#include <solitairecpp/error.hpp>
 #include <string>
 #include <vector>
 
-#include <solitairecpp/solitairecpp.hpp>
+namespace ft = ftxui;
 
 namespace solitairecpp {
 
-class ErrorInvaidCardRange : Error {
-  std::string what() { return "The card range supplied has the wrong color"; }
+class ErrorInvalidCardRange : public ErrorBase {
+public:
+  std::string what() override {
+    return "The card range supplied has the wrong color";
+  }
+
+  Error error() override { return std::make_shared<ErrorInvalidCardRange>(); }
 };
 
-class ErrorInvalidCardIndex : Error {
-  std::string what() {
+class ErrorInvalidCardIndex : public ErrorBase {
+public:
+  std::string what() override {
     return "Tried to access a card at a non-existsent index";
   }
+
+  Error error() override { return std::make_shared<ErrorInvalidCardIndex>(); }
 };
 
 enum class CardValue {
   Ace,
   Two,
   Three,
+  Four,
+  Five,
   Six,
   Seven,
   Eight,
@@ -29,18 +41,26 @@ enum class CardValue {
   Ten,
   Jack,
   Queen,
-  King
+  King,
+  Count // Need to itarate over this enum
 };
 
-enum class CardType { Hearts, Diamonds, Spades, Clubs };
+enum class CardType { Hearts, Diamonds, Spades, Clubs, Count };
 
 class Card {
-  explicit Card(CardValue value, CardType type, std::string art);
+public:
+  Card() = default;
+  Card(CardValue value, CardType type, std::string art, bool hidden = true);
+  void show();
+
+  // Tempororary remove at release
+  std::string getArt() const { return art_; }
 
 private:
+  bool hidden_;
   CardValue value_;
   CardType type_;
-  std::string art_;
+  std::string art_ = "art not initalized";
 };
 
 typedef std::vector<Card> Cards;
@@ -49,11 +69,35 @@ typedef std::vector<Card> Cards;
 class CardRow {
 public:
   CardRow() = default;
-  std::expected<void, Error> appendCards(const Cards &cards);
-  std::expected<Cards, Error> getCardsFrom(size_t cardIndex);
+  ft::Component component(); // or element?
+  std::expected<void, Error> appendCards(Cards::iterator begin,
+                                         Cards::iterator end);
+  std::expected<Cards, Error> getCardsFrom(size_t cardIndex) const;
 
 private:
   Cards cards_;
+};
+
+typedef std::array<Card, 28>
+    StartTableauCards; // The main table has 28 cards at the start
+
+class Tableau {
+public:
+  Tableau(StartTableauCards &&cards);
+
+private:
+  std::array<CardRow, 7> tableau_;
+};
+
+typedef std::array<Card, 24>
+    StartReserveStackCards; // The reserve stack has 24 cards at the start
+
+class ReserveStack {
+public:
+  ReserveStack(StartReserveStackCards &&cards);
+
+private:
+  Cards stack_;
 };
 
 } // namespace solitairecpp

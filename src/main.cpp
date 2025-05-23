@@ -1,1 +1,3 @@
-int main() { return 0; }
+#include <solitairecpp/solitairecpp.hpp>
+
+int main() { solitairecpp::Game game; }
