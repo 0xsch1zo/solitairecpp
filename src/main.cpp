@@ -2,5 +2,5 @@
 
 int main() {
   solitairecpp::Game game;
-  // game.mainLoop();
+  game.mainLoop();
 }

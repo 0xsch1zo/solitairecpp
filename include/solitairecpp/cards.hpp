@@ -11,6 +11,45 @@ namespace ft = ftxui;
 
 namespace solitairecpp {
 
+enum class CardValue {
+  Ace,
+  Two,
+  Three,
+  Four,
+  Five,
+  Six,
+  Seven,
+  Eight,
+  Nine,
+  Ten,
+  Jack,
+  Queen,
+  King,
+  Count // Need to itarate over this enum
+};
+
+enum class CardType { Hearts, Diamonds, Spades, Clubs, Count };
+
+// Due to each card in the deck being unique we can idenitfy them by thier value
+// combined with thier type/color.
+struct CardCode {
+  CardValue value;
+  CardType type;
+  bool operator==(const CardCode &rhs) const;
+};
+
+class CardSerializer {
+public:
+  static std::string Encode(const CardCode &cardCode);
+
+  static std::expected<CardCode, Error>
+  Decode(const std::string &serializedCard);
+
+private:
+  static constexpr std::string magic_ = "CardCode: ";
+  static constexpr std::string delimeter_ = "x";
+};
+
 class ErrorInvalidCardRange : public ErrorBase {
 public:
   std::string what() override {
@@ -46,60 +85,36 @@ private:
   std::string invalidString_;
 };
 
-enum class CardValue {
-  Ace,
-  Two,
-  Three,
-  Four,
-  Five,
-  Six,
-  Seven,
-  Eight,
-  Nine,
-  Ten,
-  Jack,
-  Queen,
-  King,
-  Count // Need to itarate over this enum
-};
-
-enum class CardType { Hearts, Diamonds, Spades, Clubs, Count };
-
-// Due to each card in the deck being unique we can idenitfy them by thier value
-// combined with thier type/color. Probably the best method in terms of
-// complexity.
-struct CardCode {
-  CardValue value;
-  CardType type;
-};
-
-class CardSerializer {
+class ErrorCardPositionNotFound : public ErrorBase {
 public:
-  static std::string Encode(const CardCode &cardCode);
+  ErrorCardPositionNotFound(const CardCode &code) : code_{code} {}
 
-  static std::expected<CardCode, Error>
-  Decode(const std::string &serializedCard);
+  std::string what() override {
+    return std::format("Card with the supplied code was not found: {}",
+                       CardSerializer::Encode(code_));
+  }
+
+  Error error() override {
+    return std::make_shared<ErrorCardPositionNotFound>(code_);
+  }
 
 private:
-  static constexpr std::string magic_ = "CardCode: ";
+  CardCode code_;
 };
 
 class Card {
 public:
   Card() = default;
   Card(CardValue value, CardType type, std::string art, bool hidden = true);
-  void show();
+  CardCode code() const;
   ft::Component component() const;
 
   // Tempororary remove at release
   std::string getArt() const { return art_; }
 
 private:
-  void PostCardEvent();
-
-private:
   static inline const auto cardWidth = ft::size(ft::WIDTH, ft::EQUAL, 20);
-  static inline const auto cardHeight = ft::size(ft::WIDTH, ft::EQUAL, 7);
+  static inline const auto cardHeight = ft::size(ft::HEIGHT, ft::EQUAL, 7);
   bool hidden_;
   CardValue value_;
   CardType type_;
@@ -111,37 +126,20 @@ typedef std::vector<Card> Cards;
 // wrapper around std::vector
 class CardRow {
 public:
+  struct CardPosition {
+    size_t cardIndex;
+  };
+
+public:
   CardRow() = default;
   ft::Component component() const;
   std::expected<void, Error> appendCards(Cards::iterator begin,
                                          Cards::iterator end);
   std::expected<Cards, Error> getCardsFrom(size_t cardIndex) const;
+  std::expected<CardPosition, Error> search(const CardCode &code) const;
 
 private:
   Cards cards_;
-};
-
-typedef std::array<Card, 28>
-    StartTableauCards; // The main table has 28 cards at the start
-
-class Tableau {
-public:
-  Tableau(StartTableauCards &&cards);
-  ft::Component component() const;
-
-private:
-  std::array<CardRow, 7> tableau_;
-};
-
-typedef std::array<Card, 24>
-    StartReserveStackCards; // The reserve stack has 24 cards at the start
-
-class ReserveStack {
-public:
-  ReserveStack(StartReserveStackCards &&cards);
-
-private:
-  Cards stack_;
 };
 
 } // namespace solitairecpp

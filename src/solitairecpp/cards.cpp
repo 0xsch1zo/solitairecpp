@@ -8,11 +8,15 @@
 
 namespace solitairecpp {
 
+bool CardCode::operator==(const CardCode &rhs) const {
+  return value == rhs.value && type == rhs.type;
+}
+
 std::string CardSerializer::Encode(const CardCode &cardCode) {
   // Of course very advanced encoding is being used :)
   // Think it's enogh for these purposes, using json seems to overkill
-  return std::format("{}{}-{}", magic_, static_cast<int>(cardCode.value),
-                     static_cast<int>(cardCode.type));
+  return std::format("{}{}{}{}", magic_, static_cast<int>(cardCode.value),
+                     delimeter_, static_cast<int>(cardCode.type));
 }
 
 std::expected<CardCode, Error>
@@ -20,15 +24,16 @@ CardSerializer::Decode(const std::string &serializedCard) {
   if (!serializedCard.starts_with(magic_))
     return std::unexpected(ErrorParser(serializedCard).error());
 
-  auto serializedCardPreParsed = serializedCard.substr(magic_.size() - 1);
-  auto delimeter = serializedCardPreParsed.find('-');
-  if (delimeter == std::string::npos)
+  auto serializedCardPreParsed = serializedCard.substr(magic_.size());
+  auto delimeter = serializedCardPreParsed.find(delimeter_);
+  if (delimeter == std::string::npos ||
+      delimeter == serializedCardPreParsed.size() - 1) // Can't be the last item
     return std::unexpected(ErrorParser(serializedCard).error());
 
   int cardValue{}, cardType{};
   try {
     cardValue = std::stoi(serializedCardPreParsed.substr(0, delimeter));
-    cardType = std::stoi(serializedCardPreParsed.substr(delimeter));
+    cardType = std::stoi(serializedCardPreParsed.substr(delimeter + 1));
   } catch (std::invalid_argument
                &e) { // Yes it could be handled with just std::excpetion but I
                      // think it's better in terms of clarity
@@ -64,6 +69,7 @@ ft::Component Card::component() const {
              if (screen == nullptr)
                throw std::runtime_error(
                    "Couldn't get handle on current screen"); // Cooked
+
              screen->PostEvent(ft::Event::Special(
                  CardSerializer::Encode({.value = value_, .type = type_})));
            },
@@ -83,6 +89,8 @@ ft::Component Card::component() const {
            }});
 }
 
+CardCode Card::code() const { return {.value = value_, .type = type_}; }
+
 std::expected<Cards, Error> CardRow::getCardsFrom(size_t cardIndex) const {
   if (cardIndex >= cards_.size())
     return std::unexpected(ErrorInvalidCardIndex().error());
@@ -98,32 +106,15 @@ ft::Component CardRow::component() const {
   return container;
 }
 
-Tableau::Tableau(StartTableauCards &&cards) {
-  std::vector cardsVec(cards.begin(), cards.end()); // it's just easier to copy
-
-  size_t rowSize = 1;
-  for (auto &cardRow : tableau_) {
-    auto err =
-        cardRow.appendCards(cardsVec.begin(), cardsVec.begin() + rowSize);
-    if (!err) {
-      std::println("{}", err.error()->what());
-      return;
-    }
-    cardsVec.erase(cardsVec.begin(), cardsVec.begin() + rowSize);
-    rowSize++;
+std::expected<CardRow::CardPosition, Error>
+CardRow::search(const CardCode &code) const {
+  for (const auto [i, card] :
+       std::views::zip(std::views::iota(0ULL), cards_)) { // C++23 baby
+    if (code == card.code())
+      return CardPosition{.cardIndex = i};
   }
-}
 
-ft::Component Tableau::component() const {
-  auto container = ft::Container::Horizontal({});
-  for (const auto &cardRow : tableau_)
-    container->Add(cardRow.component());
-  return container;
-}
-
-ReserveStack::ReserveStack(StartReserveStackCards &&cards) {
-  stack_.reserve(cards.size());
-  stack_.insert(stack_.end(), cards.begin(), cards.end());
+  return std::unexpected(ErrorCardPositionNotFound(code).error());
 }
 
 } // namespace solitairecpp

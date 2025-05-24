@@ -1,7 +1,8 @@
 #pragma once
 
-#include <memory>
+#include <solitairecpp/board.hpp>
 #include <solitairecpp/cards.hpp>
+#include <solitairecpp/error.hpp>
 
 namespace solitairecpp {
 
@@ -13,9 +14,26 @@ public:
   void mainLoop();
 
 private:
-  Cards buildDeck();
-  std::unique_ptr<ReserveStack> reserveStack_ = nullptr;
-  std::unique_ptr<Tableau> tableau_ = nullptr;
+  class MoveManager {
+  public:
+    MoveManager(const BoardElements &elements);
+    std::function<bool(ft::Event)> cardSelectedHandler();
+
+  private:
+    std::expected<void, Error> Move(const CardPosition &from,
+                                    const CardPosition &to);
+
+  private:
+    const BoardElements &boardElements_;
+    bool moveInitiated_{};
+    std::mutex moveMutex_;
+    std::optional<std::reference_wrapper<CardPosition>>
+        moveFrom_; // only when move sequence is initiated
+  };
+
+private:
+  BoardElements boardElements_{};
+  MoveManager moveManager_;
 };
 
 } // namespace solitairecpp

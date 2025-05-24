@@ -15,7 +15,7 @@ add_executable(solitairecpp
     ./src/main.cpp
     ./src/solitairecpp/solitaire.cpp
     ./src/solitairecpp/cards.cpp
-    ./src/solitairecpp/logic.cpp
+    ./src/solitairecpp/board.cpp
 )
 
 target_include_directories(solitairecpp
