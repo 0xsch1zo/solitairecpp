@@ -13,13 +13,14 @@ public:
   // Checks if the error is of a certain type
   template <typename Derived>
     requires std::is_base_of_v<ErrorBase, Derived>
-  bool is(Derived) {
-    Derived *d = dynamic_cast<Derived *>(this);
-    return d == nullptr;
+  bool is() {
+    return dynamic_cast<Derived *>(this) != nullptr;
   }
 
-  typedef std::shared_ptr<ErrorBase> Error; // Needs to be shared
-  virtual Error error() = 0;                // Yes it will copy
+  typedef std::shared_ptr<ErrorBase>
+      Error; // Needs to be shared because when std::expected throws it needs to
+             // copy
+  virtual Error error() = 0; // Yes it will copy
 
   virtual ~ErrorBase() {};
 };

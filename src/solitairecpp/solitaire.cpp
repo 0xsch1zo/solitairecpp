@@ -1,18 +1,17 @@
 #include <algorithm>
-#include <array>
+#include <ftxui/component/component.hpp>
+#include <ftxui/component/screen_interactive.hpp>
 #include <memory>
 #include <print>
 #include <random>
 #include <solitairecpp/cards.hpp>
+#include <solitairecpp/logic.hpp>
 #include <solitairecpp/solitairecpp.hpp>
 
 namespace solitairecpp {
 
 Game::Game() {
   Cards deck = buildDeck();
-  for (const auto &card : deck)
-    std::println("{}", card.getArt());
-  std::println("----------------------");
 
   StartTableauCards tabelauCards;
   std::copy(deck.begin(), deck.begin() + tabelauCards.size(),
@@ -46,6 +45,11 @@ Cards Game::buildDeck() {
   return deck;
 }
 
-void Game::mainLoop() {}
+void Game::mainLoop() {
+  auto screen = ft::ScreenInteractive::Fullscreen();
+  auto tableauComponent =
+      tableau_->component() | ft::CatchEvent(Logic::cardSelectedHandler);
+  screen.Loop(tableauComponent);
+}
 
 } // namespace solitairecpp
