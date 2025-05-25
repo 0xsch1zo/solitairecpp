@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <print>
 #include <random>
 #include <ranges>
@@ -6,15 +7,14 @@
 
 namespace solitairecpp {
 
-Tableau::Tableau(StartTableauCards &&cards) {
+Tableau::Tableau(StartTableauCards cards) {
   std::vector cardsVec(cards.begin(), cards.end()); // it's just easier to copy
 
   size_t rowSize = 1;
   for (auto &cardRow : tableau_) {
-    auto err =
-        cardRow.appendCards(cardsVec.begin(), cardsVec.begin() + rowSize);
+    auto err = cardRow.append({cardsVec.begin(), cardsVec.begin() + rowSize});
     if (!err) {
-      std::println("{}", err.error()->what());
+      throw std::runtime_error(err.error()->what());
       return;
     }
     cardsVec.erase(cardsVec.begin(), cardsVec.begin() + rowSize);
@@ -42,23 +42,46 @@ ft::Component Tableau::component() const {
   return container;
 }
 
-ReserveStack::ReserveStack(StartReserveStackCards &&cards) {
+std::expected<void, Error> Tableau::appendTo(size_t pos, const Cards &cards) {
+  if (pos >= tableau_.size())
+    return std::unexpected(ErrorInvalidCardIndex().error());
+
+  auto success = tableau_.at(pos).append(cards);
+  if (!success)
+    return std::unexpected(success.error());
+
+  return std::expected<void, Error>();
+}
+
+std::expected<void, Error> Tableau::deleteFrom(const CardPosition &pos) {
+  if (pos.cardRowIndex >= tableau_.size())
+    return std::unexpected(ErrorInvalidCardIndex().error());
+
+  auto success =
+      tableau_.at(pos.cardRowIndex).deleteFrom({.cardIndex = pos.cardIndex});
+  if (!success)
+    return std::unexpected(success.error());
+  return std::expected<void, Error>();
+}
+
+ReserveStack::ReserveStack(StartReserveStackCards cards) {
   stack_.reserve(cards.size());
   stack_.insert(stack_.end(), cards.begin(), cards.end());
 }
 
 BoardElements::BoardElements() {
   Cards deck = buildDeck();
+  Cards deckCopy = deck;
 
   StartTableauCards tabelauCards;
   std::copy(deck.begin(), deck.begin() + tabelauCards.size(),
             tabelauCards.begin());
-  tableau_ = std::make_unique<Tableau>(std::move(tabelauCards));
+  tableau_ = std::make_unique<Tableau>(tabelauCards);
 
   StartReserveStackCards reserveStackCards;
   std::copy(deck.begin() + tabelauCards.size(), deck.end(),
             reserveStackCards.begin());
-  reserveStack_ = std::make_unique<ReserveStack>(std::move(reserveStackCards));
+  reserveStack_ = std::make_unique<ReserveStack>(reserveStackCards);
 }
 
 ft::Component BoardElements::component() const {
@@ -94,18 +117,6 @@ BoardElements::search(const CardCode &code) const {
     return tableauPos.value();
 
   return std::unexpected(ErrorCardPositionNotFound(code).error());
-}
-
-CardPosition::CardPosition(const Tableau::CardPosition &pos)
-    : tableauPositon_{pos}, section_{BoardSection::Tableau} {}
-
-BoardSection CardPosition::section() { return section_; }
-
-std::expected<Tableau::CardPosition, Error> CardPosition::atTableau() const {
-  if (section_ != BoardSection::Tableau)
-    return std::unexpected(ErrorWrongSection(section_).error());
-
-  return tableauPositon_;
 }
 
 } // namespace solitairecpp

@@ -27,7 +27,7 @@ private:
     const BoardElements &boardElements_;
     bool moveInitiated_{};
     std::mutex moveMutex_;
-    std::optional<std::reference_wrapper<CardPosition>>
+    std::optional<CardPosition>
         moveFrom_; // only when move sequence is initiated
   };
 

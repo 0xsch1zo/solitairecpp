@@ -9,6 +9,7 @@
 namespace solitairecpp {
 
 Game::Game() : moveManager_{boardElements_} {}
+
 void Game::mainLoop() {
   auto screen = ft::ScreenInteractive::Fullscreen();
   auto board = boardElements_.component() |
@@ -18,6 +19,9 @@ void Game::mainLoop() {
 
 Game::MoveManager::MoveManager(const BoardElements &elements)
     : boardElements_{elements} {}
+
+std::expected<void, Error> Game::MoveManager::Move(const CardPosition &from,
+                                                   const CardPosition &to) {}
 
 std::function<bool(ft::Event)> Game::MoveManager::cardSelectedHandler() {
   return [this](ft::Event event) -> bool {
@@ -44,9 +48,8 @@ std::function<bool(ft::Event)> Game::MoveManager::cardSelectedHandler() {
             "moveFrom_ is not a valid position despite the "
             "move operation being initiated");
 
-      // auto success = Move(moveFrom_.value(), position.value()); // handler
-      // error
-      throw std::runtime_error("Move worked");
+      // auto success = Move(moveFrom_.value(), position.value()); // handle
+      // error throw std::runtime_error("Move worked");
 
       moveFrom_ = std::nullopt;
       moveMutex_.unlock();

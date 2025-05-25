@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cmath>
 #include <expected>
 #include <ftxui/component/component.hpp>
+#include <ftxui/component/component_base.hpp>
 #include <ftxui/dom/elements.hpp>
 #include <solitairecpp/error.hpp>
 #include <string>
@@ -112,6 +114,21 @@ public:
   // Tempororary remove at release
   std::string getArt() const { return art_; }
 
+  Card(const Card &other) noexcept
+      : hidden_{other.hidden_}, value_{other.value_}, type_{other.type_},
+        art_{other.art_} {}
+
+  Card &operator=(const Card &other) noexcept {
+    hidden_ = other.hidden_;
+    value_ = other.value_;
+    type_ = other.type_;
+    art_ = other.art_;
+    // component_ = other.component_;
+    return *this;
+  }
+
+  ~Card();
+
 private:
   static inline const auto cardWidth = ft::size(ft::WIDTH, ft::EQUAL, 20);
   static inline const auto cardHeight = ft::size(ft::HEIGHT, ft::EQUAL, 7);
@@ -119,6 +136,7 @@ private:
   CardValue value_;
   CardType type_;
   std::string art_ = "art not initalized";
+  // ft::Component component_;
 };
 
 typedef std::vector<Card> Cards;
@@ -131,15 +149,15 @@ public:
   };
 
 public:
-  CardRow() = default;
+  CardRow();
   ft::Component component() const;
-  std::expected<void, Error> appendCards(Cards::iterator begin,
-                                         Cards::iterator end);
-  std::expected<Cards, Error> getCardsFrom(size_t cardIndex) const;
+  std::expected<void, Error> append(const Cards &cards);
+  std::expected<void, Error> deleteFrom(const CardPosition &pos);
   std::expected<CardPosition, Error> search(const CardCode &code) const;
 
 private:
   Cards cards_;
+  ft::Component component_;
 };
 
 } // namespace solitairecpp

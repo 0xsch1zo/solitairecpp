@@ -53,9 +53,13 @@ public:
   };
 
 public:
-  Tableau(StartTableauCards &&cards);
+  Tableau(StartTableauCards cards); // Copying on purpose
   ft::Component component() const;
   std::expected<CardPosition, Error> search(const CardCode &code) const;
+  // std::expected<void, Error> move(CardPosition from, CardPosition to)
+  //
+  std::expected<void, Error> appendTo(size_t cardRow, const Cards &cards);
+  std::expected<void, Error> deleteFrom(const CardPosition &pos);
 
 private:
   std::array<CardRow, 7> tableau_;
@@ -66,25 +70,13 @@ typedef std::array<Card, 24>
 
 class ReserveStack {
 public:
-  ReserveStack(StartReserveStackCards &&cards);
+  ReserveStack(StartReserveStackCards cards); // Copying on purpose
 
 private:
   Cards stack_;
 };
 
-// This class neatly encompasses possible types of results returned after a
-// search for a card. It could be an abstract but in this case i think it would
-// have been more clunky
-class CardPosition {
-public:
-  CardPosition(const Tableau::CardPosition &pos);
-  BoardSection section();
-  std::expected<Tableau::CardPosition, Error> atTableau() const;
-
-private:
-  BoardSection section_;
-  Tableau::CardPosition tableauPositon_;
-};
+typedef std::variant<Tableau::CardPosition> CardPosition;
 
 struct BoardElements {
 public:
