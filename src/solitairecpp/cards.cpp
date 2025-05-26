@@ -1,12 +1,9 @@
-#include <algorithm>
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
-#include <iterator>
 #include <print>
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/error.hpp>
 #include <stdexcept>
-#include <vector>
 
 namespace solitairecpp {
 
@@ -55,9 +52,9 @@ CardSerializer::Decode(const std::string &serializedCard) {
 
 Card::Card(CardValue value, CardType type, std::string art, bool hidden)
     : value_{value}, type_{type}, art_{art}, hidden_{hidden} {
-  /*component_ = ft::Button(
+  component_ = ft::Button(
       {.on_click =
-           [&] {
+           [=, *this] {
              auto *screen = ft::ScreenInteractive::Active();
              if (screen == nullptr)
                throw std::runtime_error(
@@ -67,35 +64,7 @@ Card::Card(CardValue value, CardType type, std::string art, bool hidden)
                  CardSerializer::Encode({.value = value_, .type = type_})));
            },
        .transform =
-           [&](const ft::EntryState state) {
-             auto element = ft::text(art_);
-             element |= cardWidth | cardHeight;
-             element |= ft::border;
-
-             if (state.active) {
-               element |= ft::bold;
-             }
-             if (state.focused) {
-               element |= ft::inverted;
-             }
-             return element;
-           }});*/
-}
-
-ft::Component Card::component() const {
-  return ft::Button(
-      {.on_click =
-           [&] {
-             auto *screen = ft::ScreenInteractive::Active();
-             if (screen == nullptr)
-               throw std::runtime_error(
-                   "Couldn't get handle on current screen"); // Cooked
-
-             screen->PostEvent(ft::Event::Special(
-                 CardSerializer::Encode({.value = value_, .type = type_})));
-           },
-       .transform =
-           [&](const ft::EntryState state) {
+           [=, *this](const ft::EntryState state) {
              auto element = ft::text(art_);
              element |= cardWidth | cardHeight;
              element |= ft::border;
@@ -108,20 +77,17 @@ ft::Component Card::component() const {
              }
              return element;
            }});
-  ;
 }
 
-Card::~Card() { /*component_->Detach();*/ }
+ft::Component Card::component() const { return std::move(component_); }
 
 CardCode Card::code() const { return {.value = value_, .type = type_}; }
 
 std::expected<void, Error> CardRow::append(const Cards &cards) {
   // TODO: Check if card range is valid
-  // cards_.insert_range(cards_.begin() + pos.cardIndex, cards);
-  // std::for_each(begin, end,
-  //             [&](const auto &card) { cards_.emplace_back(card); });
+  cards_.reserve(cards.size());
   for (const auto &card : cards) {
-    cards_.push_back(card);
+    cards_.emplace_back(card);
     component_->Add(card.component());
   }
   return std::expected<void, Error>();
@@ -131,20 +97,16 @@ std::expected<void, Error> CardRow::deleteFrom(const CardPosition &pos) {
   if (pos.cardIndex >= cards_.size())
     return std::unexpected(ErrorInvalidCardIndex().error());
 
-  cards_.erase(cards_.begin() + pos.cardIndex, cards_.end());
+  for (size_t i{pos.cardIndex}; i < cards_.size(); i++) {
+    cards_.erase(cards_.begin() + i);
+    component_->ChildAt(i)->Detach();
+  }
   return std::expected<void, Error>();
 }
 
 CardRow::CardRow() : component_{ft::Container::Vertical({})} {}
 
-// fix this shit
-ft::Component CardRow::component() const {
-  /*auto container = ft::Container::Vertical({});
-  for (const auto &card : cards_)
-    container->Add(card.component());
-  return container;*/
-  return component_;
-}
+ft::Component CardRow::component() const { return std::move(component_); }
 
 std::expected<CardRow::CardPosition, Error>
 CardRow::search(const CardCode &code) const {

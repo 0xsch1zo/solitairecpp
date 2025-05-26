@@ -28,8 +28,8 @@ Tableau::search(const CardCode &code) const {
        std::views::zip(std::views::iota(0ULL), tableau_)) {
     auto position = cardRow.search(code);
     if (position) {
-      return CardPosition{.cardIndex = position.value().cardIndex,
-                          .cardRowIndex = i};
+      return CardPosition{.cardRowIndex = i,
+                          .cardIndex = position.value().cardIndex};
     }
   }
   return std::unexpected(ErrorCardPositionNotFound(code).error());
@@ -42,11 +42,12 @@ ft::Component Tableau::component() const {
   return container;
 }
 
-std::expected<void, Error> Tableau::appendTo(size_t pos, const Cards &cards) {
-  if (pos >= tableau_.size())
+std::expected<void, Error> Tableau::appendTo(const AppendCardPosition &pos,
+                                             const Cards &cards) {
+  if (pos.cardRowIndex >= tableau_.size())
     return std::unexpected(ErrorInvalidCardIndex().error());
 
-  auto success = tableau_.at(pos).append(cards);
+  auto success = tableau_.at(pos.cardRowIndex).append(cards);
   if (!success)
     return std::unexpected(success.error());
 
@@ -71,7 +72,6 @@ ReserveStack::ReserveStack(StartReserveStackCards cards) {
 
 BoardElements::BoardElements() {
   Cards deck = buildDeck();
-  Cards deckCopy = deck;
 
   StartTableauCards tabelauCards;
   std::copy(deck.begin(), deck.begin() + tabelauCards.size(),

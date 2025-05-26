@@ -48,7 +48,12 @@ typedef std::array<Card, 28>
 class Tableau {
 public:
   struct CardPosition {
+    size_t cardRowIndex{};
     size_t cardIndex{};
+  };
+
+  // We always append at the end so a card position is unnecessary
+  struct AppendCardPosition {
     size_t cardRowIndex{};
   };
 
@@ -56,9 +61,8 @@ public:
   Tableau(StartTableauCards cards); // Copying on purpose
   ft::Component component() const;
   std::expected<CardPosition, Error> search(const CardCode &code) const;
-  // std::expected<void, Error> move(CardPosition from, CardPosition to)
-  //
-  std::expected<void, Error> appendTo(size_t cardRow, const Cards &cards);
+  std::expected<void, Error> appendTo(const AppendCardPosition &pos,
+                                      const Cards &cards);
   std::expected<void, Error> deleteFrom(const CardPosition &pos);
 
 private:
@@ -81,6 +85,7 @@ typedef std::variant<Tableau::CardPosition> CardPosition;
 struct BoardElements {
 public:
   BoardElements();
+  // non-copyable
   BoardElements(const BoardElements &) = delete;
   BoardElements &operator=(const BoardElements &) = delete;
 

@@ -5,6 +5,7 @@
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/solitairecpp.hpp>
 #include <stdexcept>
+#include <variant>
 
 namespace solitairecpp {
 
@@ -21,7 +22,18 @@ Game::MoveManager::MoveManager(const BoardElements &elements)
     : boardElements_{elements} {}
 
 std::expected<void, Error> Game::MoveManager::Move(const CardPosition &from,
-                                                   const CardPosition &to) {}
+                                                   const CardPosition &to) {
+  if (std::holds_alternative<Tableau::CardPosition>(from)) {
+    if (std::holds_alternative<Tableau::CardPosition>(to)) {
+      auto success = boardElements_.tableau_->deleteFrom(
+          std::get<Tableau::CardPosition>(to));
+      if (!success)
+        throw std::runtime_error(success.error()->what());
+    }
+  }
+
+  return std::expected<void, Error>();
+}
 
 std::function<bool(ft::Event)> Game::MoveManager::cardSelectedHandler() {
   return [this](ft::Event event) -> bool {
@@ -35,7 +47,6 @@ std::function<bool(ft::Event)> Game::MoveManager::cardSelectedHandler() {
       if (!position)
         throw std::runtime_error(position.error()->what());
 
-      moveMutex_.lock();
       moveFrom_ = position.value();
       moveInitiated_ = true;
     } else {
@@ -48,11 +59,10 @@ std::function<bool(ft::Event)> Game::MoveManager::cardSelectedHandler() {
             "moveFrom_ is not a valid position despite the "
             "move operation being initiated");
 
-      // auto success = Move(moveFrom_.value(), position.value()); // handle
-      // error throw std::runtime_error("Move worked");
+      auto success = Move(moveFrom_.value(), position.value()); // handle
+      // throw std::runtime_error("Move worked");
 
       moveFrom_ = std::nullopt;
-      moveMutex_.unlock();
     }
     return true;
   };

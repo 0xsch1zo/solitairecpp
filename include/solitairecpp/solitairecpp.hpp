@@ -25,8 +25,8 @@ private:
 
   private:
     const BoardElements &boardElements_;
+    // use atomics
     bool moveInitiated_{};
-    std::mutex moveMutex_;
     std::optional<CardPosition>
         moveFrom_; // only when move sequence is initiated
   };
