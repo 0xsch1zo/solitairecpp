@@ -137,6 +137,7 @@ public:
   ft::Component component() const;
   std::expected<void, Error> append(const Cards &cards);
   std::expected<void, Error> deleteFrom(const CardPosition &pos);
+  std::expected<Cards, Error> getCardsFrom(const CardPosition &pos);
   std::expected<CardPosition, Error> search(const CardCode &code) const;
 
 private:

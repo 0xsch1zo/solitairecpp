@@ -3,6 +3,7 @@
 #include <print>
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/error.hpp>
+#include <solitairecpp/move_manager.hpp>
 #include <stdexcept>
 
 namespace solitairecpp {
@@ -52,7 +53,7 @@ CardSerializer::Decode(const std::string &serializedCard) {
 
 Card::Card(CardValue value, CardType type, std::string art, bool hidden)
     : value_{value}, type_{type}, art_{art}, hidden_{hidden} {
-  component_ = ft::Button(
+  auto component = ft::Button(
       {.on_click =
            [=, *this] {
              auto *screen = ft::ScreenInteractive::Active();
@@ -77,6 +78,10 @@ Card::Card(CardValue value, CardType type, std::string art, bool hidden)
              }
              return element;
            }});
+  component_ = ft::Renderer(component, [=]() {
+    if ()
+      return component->Render();
+  });
 }
 
 ft::Component Card::component() const { return std::move(component_); }
@@ -117,6 +122,14 @@ CardRow::search(const CardCode &code) const {
   }
 
   return std::unexpected(ErrorCardPositionNotFound(code).error());
+}
+
+std::expected<Cards, Error> CardRow::getCardsFrom(const CardPosition &pos) {
+  if (pos.cardIndex >= cards_.size())
+    return std::unexpected(ErrorInvalidCardIndex().error());
+
+  Cards res(cards_.begin() + pos.cardIndex, cards_.end());
+  return res;
 }
 
 } // namespace solitairecpp

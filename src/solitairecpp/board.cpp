@@ -65,6 +65,22 @@ std::expected<void, Error> Tableau::deleteFrom(const CardPosition &pos) {
   return std::expected<void, Error>();
 }
 
+std::expected<Cards, Error> Tableau::getCardsFrom(const CardPosition &pos) {
+  if (pos.cardRowIndex >= tableau_.size())
+    return std::unexpected(ErrorInvalidCardIndex().error());
+
+  auto success =
+      tableau_.at(pos.cardRowIndex).getCardsFrom({.cardIndex = pos.cardIndex});
+  if (!success)
+    return std::unexpected(success.error());
+
+  return success.value();
+}
+
+bool Tableau::CardPosition::operator==(const CardPosition &other) const {
+  return cardRowIndex == other.cardRowIndex && cardIndex == other.cardIndex;
+}
+
 ReserveStack::ReserveStack(StartReserveStackCards cards) {
   stack_.reserve(cards.size());
   stack_.insert(stack_.end(), cards.begin(), cards.end());

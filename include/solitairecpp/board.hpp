@@ -50,6 +50,7 @@ public:
   struct CardPosition {
     size_t cardRowIndex{};
     size_t cardIndex{};
+    bool operator==(const CardPosition &other) const;
   };
 
   // We always append at the end so a card position is unnecessary
@@ -64,6 +65,7 @@ public:
   std::expected<void, Error> appendTo(const AppendCardPosition &pos,
                                       const Cards &cards);
   std::expected<void, Error> deleteFrom(const CardPosition &pos);
+  std::expected<Cards, Error> getCardsFrom(const CardPosition &pos);
 
 private:
   std::array<CardRow, 7> tableau_;
