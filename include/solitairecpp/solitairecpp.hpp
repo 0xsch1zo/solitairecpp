@@ -10,13 +10,12 @@ namespace solitairecpp {
 class Game {
 public:
   // Add modes here
-  Game();
+  Game() = default;
 
   void mainLoop();
 
 private:
-  BoardElements boardElements_{};
-  MoveManager moveManager_;
+  Board board_{};
 };
 
 } // namespace solitairecpp

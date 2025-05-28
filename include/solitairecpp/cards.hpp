@@ -12,6 +12,8 @@ namespace ft = ftxui;
 
 namespace solitairecpp {
 
+class MoveManager;
+
 enum class CardValue {
   Ace,
   Two,
@@ -105,8 +107,10 @@ private:
 
 class Card {
 public:
-  Card() = default;
-  Card(CardValue value, CardType type, std::string art, bool hidden = true);
+  Card(const MoveManager &moveManager, CardValue value, CardType type,
+       std::string art, bool hidden = true);
+  Card &operator=(const Card &other);
+
   CardCode code() const;
   ft::Component component() const;
 
@@ -121,6 +125,7 @@ private:
   CardType type_;
   std::string art_ = "art not initalized";
   ft::Component component_;
+  const MoveManager &moveManager_;
 };
 
 typedef std::vector<Card> Cards;

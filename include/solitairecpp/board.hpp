@@ -5,6 +5,8 @@
 
 namespace solitairecpp {
 
+class MoveManager;
+
 enum class BoardSection {
   Tableau,
   ReserveStack,
@@ -42,11 +44,11 @@ private:
   BoardSection section_;
 };
 
-typedef std::array<Card, 28>
-    StartTableauCards; // The main table has 28 cards at the start
-
 class Tableau {
 public:
+  static constexpr size_t startCardsSize = 28;
+  typedef std::array<Card, startCardsSize> StartCards;
+
   struct CardPosition {
     size_t cardRowIndex{};
     size_t cardIndex{};
@@ -59,7 +61,7 @@ public:
   };
 
 public:
-  Tableau(StartTableauCards cards); // Copying on purpose
+  Tableau(StartCards); // Copying on purpose
   ft::Component component() const;
   std::expected<CardPosition, Error> search(const CardCode &code) const;
   std::expected<void, Error> appendTo(const AppendCardPosition &pos,
@@ -71,12 +73,13 @@ private:
   std::array<CardRow, 7> tableau_;
 };
 
-typedef std::array<Card, 24>
-    StartReserveStackCards; // The reserve stack has 24 cards at the start
-
 class ReserveStack {
 public:
-  ReserveStack(StartReserveStackCards cards); // Copying on purpose
+  static constexpr size_t startCardsSize = 24;
+  typedef std::array<Card, startCardsSize> StartCards;
+
+public:
+  ReserveStack(StartCards); // Copying on purpose
 
 private:
   Cards stack_;
@@ -84,21 +87,24 @@ private:
 
 typedef std::variant<Tableau::CardPosition> CardPosition;
 
-struct BoardElements {
+class Board {
 public:
-  BoardElements();
+  Board();
   // non-copyable
-  BoardElements(const BoardElements &) = delete;
-  BoardElements &operator=(const BoardElements &) = delete;
+  Board(const Board &) = delete;
+  Board &operator=(const Board &) = delete;
 
   std::expected<CardPosition, Error> search(const CardCode &code) const;
   ft::Component component() const;
+  Cards buildDeck();
 
+  ReserveStack &reserveStack() const;
+  Tableau &tableau() const;
+
+private:
   std::unique_ptr<ReserveStack> reserveStack_ = nullptr;
   std::unique_ptr<Tableau> tableau_ = nullptr;
-
-public:
-  Cards buildDeck();
+  std::unique_ptr<MoveManager> moveManager_;
 };
 
 } // namespace solitairecpp

@@ -4,8 +4,7 @@
 
 namespace solitairecpp {
 
-MoveManager::MoveManager(const BoardElements &elements)
-    : boardElements_{elements} {}
+MoveManager::MoveManager(const Board &elements) : boardElements_{elements} {}
 
 bool MoveManager::isBeingMoved(const CardCode &code) const {
   const auto &from = moveFrom_.load();
@@ -30,17 +29,17 @@ std::expected<void, Error> MoveManager::Move(const CardPosition &from,
                                              const CardPosition &to) {
   if (std::holds_alternative<Tableau::CardPosition>(from)) {
     if (std::holds_alternative<Tableau::CardPosition>(to)) {
-      auto cards = boardElements_.tableau_->getCardsFrom(
+      auto cards = boardElements_.tableau().getCardsFrom(
           std::get<Tableau::CardPosition>(from));
       if (!cards)
         throw std::runtime_error(cards.error()->what());
 
-      auto deleteSuccess = boardElements_.tableau_->deleteFrom(
+      auto deleteSuccess = boardElements_.tableau().deleteFrom(
           std::get<Tableau::CardPosition>(from));
       if (!deleteSuccess)
         throw std::runtime_error(deleteSuccess.error()->what());
 
-      auto appendSuccess = boardElements_.tableau_->appendTo(
+      auto appendSuccess = boardElements_.tableau().appendTo(
           {.cardRowIndex = std::get<Tableau::CardPosition>(to).cardRowIndex},
           cards.value());
       if (!appendSuccess)

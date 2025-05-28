@@ -1,16 +1,24 @@
-#include <algorithm>
+#include <memory>
 #include <print>
 #include <random>
 #include <ranges>
 #include <solitairecpp/board.hpp>
 #include <solitairecpp/cards.hpp>
+#include <solitairecpp/move_manager.hpp>
+#include <stdexcept>
 
 namespace solitairecpp {
-
-Tableau::Tableau(StartTableauCards cards) {
+Tableau::Tableau(StartCards cards) {
   std::vector cardsVec(cards.begin(), cards.end()); // it's just easier to copy
 
   size_t rowSize = 1;
+  /*auto success =
+      tableau_.at(0).append({cardsVec.begin(), cardsVec.begin() + rowSize + 1});
+  cardsVec.erase(cardsVec.begin() + 1);
+  success =
+      tableau_.at(1).append({cardsVec.begin(), cardsVec.begin() + rowSize +
+  1});*/
+  //  throw std::runtime_error(std::format("{}", cardsVec.size()));
   for (auto &cardRow : tableau_) {
     auto err = cardRow.append({cardsVec.begin(), cardsVec.begin() + rowSize});
     if (!err) {
@@ -81,31 +89,37 @@ bool Tableau::CardPosition::operator==(const CardPosition &other) const {
   return cardRowIndex == other.cardRowIndex && cardIndex == other.cardIndex;
 }
 
-ReserveStack::ReserveStack(StartReserveStackCards cards) {
+ReserveStack::ReserveStack(StartCards cards) {
   stack_.reserve(cards.size());
   stack_.insert(stack_.end(), cards.begin(), cards.end());
 }
 
-BoardElements::BoardElements() {
+Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
   Cards deck = buildDeck();
 
-  StartTableauCards tabelauCards;
-  std::copy(deck.begin(), deck.begin() + tabelauCards.size(),
-            tabelauCards.begin());
+  Tableau::StartCards tabelauCards =
+      [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+        return Tableau::StartCards{{deck.at(Is)...}};
+      }(std::make_index_sequence<
+          Tableau::startCardsSize>{}); // This is just initializing the array
+                                       // with elements from the deck. Yes there
+                                       // is problably no other simpler way.
   tableau_ = std::make_unique<Tableau>(tabelauCards);
 
-  StartReserveStackCards reserveStackCards;
-  std::copy(deck.begin() + tabelauCards.size(), deck.end(),
-            reserveStackCards.begin());
+  ReserveStack::StartCards reserveStackCards =
+      [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+        return ReserveStack::StartCards{{deck.at(Is)...}};
+      }(std::make_index_sequence<ReserveStack::startCardsSize>{});
   reserveStack_ = std::make_unique<ReserveStack>(reserveStackCards);
 }
 
-ft::Component BoardElements::component() const {
+ft::Component Board::component() const {
   // Add the rest of board elements
-  return tableau_->component();
+  return tableau_->component() |
+         ft::CatchEvent(moveManager_->cardSelectedHandler());
 }
 
-Cards BoardElements::buildDeck() {
+Cards Board::buildDeck() {
   const auto deckSize = 52;
   Cards deck;
   deck.reserve(deckSize);
@@ -113,7 +127,7 @@ Cards BoardElements::buildDeck() {
     for (size_t j{}; j < static_cast<size_t>(CardType::Count); j++) {
       auto value = static_cast<CardValue>(i);
       auto type = static_cast<CardType>(j);
-      deck.emplace_back(value, type,
+      deck.emplace_back(*moveManager_, value, type,
                         "test " + std::to_string(i) + " " + std::to_string(j));
     }
   }
@@ -126,13 +140,16 @@ Cards BoardElements::buildDeck() {
   return deck;
 }
 
-std::expected<CardPosition, Error>
-BoardElements::search(const CardCode &code) const {
+std::expected<CardPosition, Error> Board::search(const CardCode &code) const {
   auto tableauPos = tableau_->search(code);
   if (tableauPos)
     return tableauPos.value();
 
   return std::unexpected(ErrorCardPositionNotFound(code).error());
 }
+
+Tableau &Board::tableau() const { return *tableau_; }
+
+ReserveStack &Board::reserveStack() const { return *reserveStack_; }
 
 } // namespace solitairecpp

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 #include <print>
@@ -51,9 +52,11 @@ CardSerializer::Decode(const std::string &serializedCard) {
                   .type = static_cast<CardType>(cardType)};
 }
 
-Card::Card(CardValue value, CardType type, std::string art, bool hidden)
-    : value_{value}, type_{type}, art_{art}, hidden_{hidden} {
-  auto component = ft::Button(
+Card::Card(const MoveManager &moveManager, CardValue value, CardType type,
+           std::string art, bool hidden)
+    : moveManager_{moveManager}, value_{value}, type_{type}, art_{art},
+      hidden_{hidden} {
+  component_ = ft::Button(
       {.on_click =
            [=, *this] {
              auto *screen = ft::ScreenInteractive::Active();
@@ -69,6 +72,8 @@ Card::Card(CardValue value, CardType type, std::string art, bool hidden)
              auto element = ft::text(art_);
              element |= cardWidth | cardHeight;
              element |= ft::border;
+             if (moveManager_.isBeingMoved(code()))
+               element |= ft::color(ft::Color::Green);
 
              if (state.active) {
                element |= ft::bold;
@@ -78,15 +83,25 @@ Card::Card(CardValue value, CardType type, std::string art, bool hidden)
              }
              return element;
            }});
-  component_ = ft::Renderer(component, [=]() {
-    if ()
-      return component->Render();
-  });
+}
+
+Card &Card::operator=(const Card &other) {
+  if (this == &other)
+    return *this;
+
+  value_ = other.value_;
+  type_ = other.type_;
+  art_ = other.art_;
+  hidden_ = other.hidden_;
+  component_ = other.component_;
+  return *this;
 }
 
 ft::Component Card::component() const { return std::move(component_); }
 
 CardCode Card::code() const { return {.value = value_, .type = type_}; }
+
+CardRow::CardRow() : component_{ft::Container::Vertical({})} {}
 
 std::expected<void, Error> CardRow::append(const Cards &cards) {
   // TODO: Check if card range is valid
@@ -108,8 +123,6 @@ std::expected<void, Error> CardRow::deleteFrom(const CardPosition &pos) {
   }
   return std::expected<void, Error>();
 }
-
-CardRow::CardRow() : component_{ft::Container::Vertical({})} {}
 
 ft::Component CardRow::component() const { return std::move(component_); }
 
