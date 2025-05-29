@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <ftxui/component/component.hpp>
 #include <memory>
 #include <print>
 #include <random>
@@ -90,9 +92,83 @@ bool Tableau::AppendCardPosition::operator==(
   return cardRowIndex == other.cardRowIndex;
 }
 
-ReserveStack::ReserveStack(StartCards cards) {
-  stack_.reserve(cards.size());
-  stack_.insert(stack_.end(), cards.begin(), cards.end());
+ReserveStack::ReserveStack(Difficulty mode, StartCards cards)
+    : mode_{mode}, viewableCardsComponent_{ft::Container::Horizontal({})} {
+  for (auto &card : cards)
+    card.show();
+
+  hiddenCards_.reserve(cards.size());
+  hiddenCards_.append_range(cards);
+}
+
+void ReserveStack::moveToHiddenAndShuffle() {
+  hiddenCards_.append_range(viewedCards_);
+  viewedCards_.erase(viewedCards_.begin(), viewedCards_.end());
+
+  std::random_device rd;
+  std::mt19937 gen{rd()};
+  std::shuffle(hiddenCards_.begin(), hiddenCards_.end(), gen);
+}
+
+void ReserveStack::revealEasy() {
+  viewedCards_.emplace_back(hiddenCards_.front());
+  hiddenCards_.erase(hiddenCards_.begin());
+
+  if (viewableCardsComponent_->ChildCount() > 0)
+    viewableCardsComponent_->ChildAt(0)->Detach();
+  viewableCardsComponent_->Add(viewedCards_.back().component());
+}
+
+void ReserveStack::revealHard() {
+  viewedCards_.insert(viewedCards_.end(), hiddenCards_.begin(),
+                      hiddenCards_.begin() + hardDifficultyViewableAmount);
+  if (hiddenCards_.size() < hardDifficultyViewableAmount)
+    throw std::runtime_error("invalid card count in reserve stack");
+
+  hiddenCards_.erase(hiddenCards_.begin(),
+                     hiddenCards_.begin() + hardDifficultyViewableAmount);
+
+  viewableCardsComponent_->DetachAllChildren();
+  for (size_t i{1}; i <= hardDifficultyViewableAmount; i++)
+    viewableCardsComponent_->Add(
+        viewedCards_.at(viewedCards_.size() - i).component());
+}
+
+void ReserveStack::reveal() {
+  if (hiddenCards_.size() == 0)
+    moveToHiddenAndShuffle();
+
+  switch (mode_) {
+  case Difficulty::Easy:
+    revealEasy();
+    break;
+  case Difficulty::Hard:
+    revealHard();
+    break;
+  }
+}
+
+ft::Component ReserveStack::component() {
+  return ft::Container::Horizontal(
+      {ft::Button({.on_click = [&] { reveal(); },
+                   .transform =
+                       [&](const ft::EntryState state) {
+                         ft::Element element;
+                         if (hiddenCards_.size() == 0)
+                           element = ft::text("shuffle");
+                         else
+                           element = ft::text("reserve stack - hidden");
+                         element |= ft::border;
+
+                         if (state.active)
+                           element |= ft::bold;
+                         if (state.focused)
+                           element |= ft::inverted;
+                         return element;
+                       }
+
+       }),
+       viewableCardsComponent_});
 }
 
 Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
@@ -106,18 +182,23 @@ Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
                                        // with elements from the deck. Yes there
                                        // is problably no other simpler way.
   tableau_ = std::make_unique<Tableau>(tabelauCards, *moveManager_);
+  deck.erase(deck.begin(), deck.begin() + Tableau::startCardsSize);
 
   ReserveStack::StartCards reserveStackCards =
       [&]<std::size_t... Is>(std::index_sequence<Is...>) {
         return ReserveStack::StartCards{{deck.at(Is)...}};
       }(std::make_index_sequence<ReserveStack::startCardsSize>{});
-  reserveStack_ = std::make_unique<ReserveStack>(reserveStackCards);
+  reserveStack_ =
+      std::make_unique<ReserveStack>(Difficulty::Easy, reserveStackCards);
 }
 
 ft::Component Board::component() const {
   // Add the rest of board elements
-  return tableau_->component() |
-         ft::CatchEvent(moveManager_->cardSelectedHandler());
+  return ft::Container::Horizontal({
+      reserveStack_->component(),
+      tableau_->component() |
+          ft::CatchEvent(moveManager_->cardSelectedHandler()),
+  });
 }
 
 Cards Board::buildDeck() {

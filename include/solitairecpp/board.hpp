@@ -1,11 +1,14 @@
 #pragma once
 
+#include <ftxui/component/component_base.hpp>
 #include <solitairecpp/cards.hpp>
 #include <utility>
 
 namespace solitairecpp {
 
 class MoveManager;
+
+enum class Difficulty { Easy, Hard };
 
 enum class BoardSection {
   Tableau,
@@ -88,10 +91,21 @@ public:
   typedef std::array<Card, startCardsSize> StartCards;
 
 public:
-  ReserveStack(StartCards); // Copying on purpose
+  ReserveStack(Difficulty mode, StartCards cards); // Copying on purpose
+  void reveal();
+  ft::Component component();
 
 private:
-  Cards stack_;
+  void moveToHiddenAndShuffle();
+  void revealEasy();
+  void revealHard();
+
+private:
+  static constexpr size_t hardDifficultyViewableAmount = 3;
+  Difficulty mode_;
+  Cards hiddenCards_;
+  Cards viewedCards_;
+  ft::Component viewableCardsComponent_;
 };
 
 typedef std::variant<Tableau::CardPosition, Tableau::AppendCardPosition>
