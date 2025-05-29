@@ -111,6 +111,7 @@ public:
        std::string art, bool hidden = true);
   Card &operator=(const Card &other);
 
+  void show();
   CardCode code() const;
   ft::Component component() const;
 
@@ -120,7 +121,7 @@ public:
 private:
   static inline const auto cardWidth = ft::size(ft::WIDTH, ft::EQUAL, 20);
   static inline const auto cardHeight = ft::size(ft::HEIGHT, ft::EQUAL, 7);
-  bool hidden_;
+  std::shared_ptr<bool> hidden_;
   CardValue value_;
   CardType type_;
   std::string art_ = "art not initalized";

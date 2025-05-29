@@ -52,6 +52,10 @@ bool MoveManager::isTargetError(const CardPosition &pos) const {
   return false;
 }
 
+bool MoveManager::moveTransactionOpen() const {
+  return moveFrom_.load() != std::nullopt;
+}
+
 std::expected<void, Error> MoveManager::Move() {
   if (!moveFrom_.load().has_value() || !moveTo_.load().has_value()) {
     moveFrom_ = std::nullopt;

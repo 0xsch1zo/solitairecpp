@@ -55,10 +55,12 @@ CardSerializer::Decode(const std::string &serializedCard) {
 Card::Card(const MoveManager &moveManager, CardValue value, CardType type,
            std::string art, bool hidden)
     : moveManager_{moveManager}, value_{value}, type_{type}, art_{art},
-      hidden_{hidden} {
+      hidden_{std::make_shared<bool>(hidden)} {
   component_ = ft::Button(
       {.on_click =
            [=, *this] {
+             if (*hidden_)
+               return;
              auto *screen = ft::ScreenInteractive::Active();
              if (screen == nullptr)
                throw std::runtime_error(
@@ -69,11 +71,15 @@ Card::Card(const MoveManager &moveManager, CardValue value, CardType type,
            },
        .transform =
            [=, *this](const ft::EntryState state) {
-             auto element = ft::text(art_);
+             auto element = ft::text(*hidden_ ? "hidden" : art_);
              element |= cardWidth | cardHeight;
              element |= ft::border;
              if (moveManager_.isBeingMoved(code()))
                element |= ft::color(ft::Color::Green);
+
+             // shoud not focus if the transaction is open or the card is hidden
+             if (moveManager_.moveTransactionOpen() || *hidden_)
+               return element;
 
              if (state.active) {
                element |= ft::bold;
@@ -96,6 +102,8 @@ Card &Card::operator=(const Card &other) {
   component_ = other.component_;
   return *this;
 }
+
+void Card::show() { *hidden_ = false; }
 
 ft::Component Card::component() const { return std::move(component_); }
 
@@ -123,6 +131,9 @@ std::expected<void, Error> CardRow::deleteFrom(const CardPosition &pos) {
     cardsComponent_->ChildAt(pos.cardIndex)->Detach();
 
   cards_.erase(cards_.begin() + pos.cardIndex, cards_.end());
+
+  if (cards_.size() != 0)
+    cards_.back().show(); // Reveal the last card
   return std::expected<void, Error>();
 }
 
@@ -130,12 +141,18 @@ ft::Component CardRow::component() const {
   auto moveTargetBar = ft::Button(
       {.on_click =
            [*this] {
+             if (!moveManager_.moveTransactionOpen())
+               return;
              moveManager_.setMoveTarget(
                  Tableau::AppendCardPosition{.cardRowIndex = index_});
            },
        .transform =
            [*this](const ft::EntryState &state) {
              auto element = ft::separator();
+
+             // should not focus if transaction is not open
+             if (!moveManager_.moveTransactionOpen())
+               return element;
 
              if (state.active)
                element |= ft::bold;

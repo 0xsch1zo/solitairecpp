@@ -14,7 +14,9 @@ Tableau::Tableau(StartCards cards, MoveManager &moveManager)
 
   size_t rowSize = 1;
   for (auto &cardRow : tableau_) {
-    auto err = cardRow.append({cardsVec.begin(), cardsVec.begin() + rowSize});
+    std::vector cardRowCards(cardsVec.begin(), cardsVec.begin() + rowSize);
+    cardRowCards.back().show(); // The last card is visible
+    auto err = cardRow.append(cardRowCards);
     if (!err) {
       throw std::runtime_error(err.error()->what());
       return;

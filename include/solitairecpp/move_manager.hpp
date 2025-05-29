@@ -22,6 +22,7 @@ public:
   bool isBeingMoved(const CardCode &code) const;
   bool isMoveTarget(const CardPosition &pos) const;
   bool isTargetError(const CardPosition &pos) const;
+  bool moveTransactionOpen() const;
 
 private:
   std::expected<void, Error> Move();
