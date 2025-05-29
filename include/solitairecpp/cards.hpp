@@ -138,7 +138,7 @@ public:
   };
 
 public:
-  CardRow();
+  CardRow(size_t index, MoveManager &moveManager);
   ft::Component component() const;
   std::expected<void, Error> append(const Cards &cards);
   std::expected<void, Error> deleteFrom(const CardPosition &pos);
@@ -146,8 +146,10 @@ public:
   std::expected<CardPosition, Error> search(const CardCode &code) const;
 
 private:
-  ft::Component component_;
+  ft::Component cardsComponent_;
   Cards cards_;
+  size_t index_;
+  MoveManager &moveManager_;
 };
 
 } // namespace solitairecpp

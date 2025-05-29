@@ -8,17 +8,11 @@
 #include <stdexcept>
 
 namespace solitairecpp {
-Tableau::Tableau(StartCards cards) {
+Tableau::Tableau(StartCards cards, MoveManager &moveManager)
+    : moveManager_{moveManager} {
   std::vector cardsVec(cards.begin(), cards.end()); // it's just easier to copy
 
   size_t rowSize = 1;
-  /*auto success =
-      tableau_.at(0).append({cardsVec.begin(), cardsVec.begin() + rowSize + 1});
-  cardsVec.erase(cardsVec.begin() + 1);
-  success =
-      tableau_.at(1).append({cardsVec.begin(), cardsVec.begin() + rowSize +
-  1});*/
-  //  throw std::runtime_error(std::format("{}", cardsVec.size()));
   for (auto &cardRow : tableau_) {
     auto err = cardRow.append({cardsVec.begin(), cardsVec.begin() + rowSize});
     if (!err) {
@@ -89,6 +83,11 @@ bool Tableau::CardPosition::operator==(const CardPosition &other) const {
   return cardRowIndex == other.cardRowIndex && cardIndex == other.cardIndex;
 }
 
+bool Tableau::AppendCardPosition::operator==(
+    const AppendCardPosition &other) const {
+  return cardRowIndex == other.cardRowIndex;
+}
+
 ReserveStack::ReserveStack(StartCards cards) {
   stack_.reserve(cards.size());
   stack_.insert(stack_.end(), cards.begin(), cards.end());
@@ -104,7 +103,7 @@ Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
           Tableau::startCardsSize>{}); // This is just initializing the array
                                        // with elements from the deck. Yes there
                                        // is problably no other simpler way.
-  tableau_ = std::make_unique<Tableau>(tabelauCards);
+  tableau_ = std::make_unique<Tableau>(tabelauCards, *moveManager_);
 
   ReserveStack::StartCards reserveStackCards =
       [&]<std::size_t... Is>(std::index_sequence<Is...>) {

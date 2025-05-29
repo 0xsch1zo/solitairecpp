@@ -1,6 +1,6 @@
-#include <algorithm>
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
+#include <ftxui/dom/elements.hpp>
 #include <print>
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/error.hpp>
@@ -101,14 +101,16 @@ ft::Component Card::component() const { return std::move(component_); }
 
 CardCode Card::code() const { return {.value = value_, .type = type_}; }
 
-CardRow::CardRow() : component_{ft::Container::Vertical({})} {}
+CardRow::CardRow(size_t index, MoveManager &moveManager)
+    : cardsComponent_{ft::Container::Vertical({})}, moveManager_{moveManager},
+      index_{index} {}
 
 std::expected<void, Error> CardRow::append(const Cards &cards) {
   // TODO: Check if card range is valid
   cards_.reserve(cards.size());
   for (const auto &card : cards) {
     cards_.emplace_back(card);
-    component_->Add(card.component());
+    cardsComponent_->Add(card.component());
   }
   return std::expected<void, Error>();
 }
@@ -118,13 +120,36 @@ std::expected<void, Error> CardRow::deleteFrom(const CardPosition &pos) {
     return std::unexpected(ErrorInvalidCardIndex().error());
 
   for (size_t i{pos.cardIndex}; i < cards_.size(); i++)
-    component_->ChildAt(pos.cardIndex)->Detach();
+    cardsComponent_->ChildAt(pos.cardIndex)->Detach();
 
   cards_.erase(cards_.begin() + pos.cardIndex, cards_.end());
   return std::expected<void, Error>();
 }
 
-ft::Component CardRow::component() const { return std::move(component_); }
+ft::Component CardRow::component() const {
+  auto moveTargetBar = ft::Button(
+      {.on_click =
+           [*this] {
+             moveManager_.setMoveTarget(
+                 Tableau::AppendCardPosition{.cardRowIndex = index_});
+           },
+       .transform =
+           [*this](const ft::EntryState &state) {
+             auto element = ft::separator();
+
+             if (state.active)
+               element |= ft::bold;
+             if (state.focused)
+               element |= ft::inverted;
+
+             if (moveManager_.isTargetError(
+                     Tableau::AppendCardPosition{.cardRowIndex = index_}))
+               element |= ft::color(ft::Color::Red);
+
+             return element;
+           }});
+  return std::move(ft::Container::Vertical({cardsComponent_, moveTargetBar}));
+}
 
 std::expected<CardRow::CardPosition, Error>
 CardRow::search(const CardCode &code) const {

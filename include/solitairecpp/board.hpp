@@ -58,10 +58,13 @@ public:
   // We always append at the end so a card position is unnecessary
   struct AppendCardPosition {
     size_t cardRowIndex{};
+
+    bool operator==(const AppendCardPosition &other) const;
   };
 
 public:
-  Tableau(StartCards); // Copying on purpose
+  Tableau(StartCards cards,
+          MoveManager &moveManager); // Copying on purpose
   ft::Component component() const;
   std::expected<CardPosition, Error> search(const CardCode &code) const;
   std::expected<void, Error> appendTo(const AppendCardPosition &pos,
@@ -70,7 +73,13 @@ public:
   std::expected<Cards, Error> getCardsFrom(const CardPosition &pos);
 
 private:
-  std::array<CardRow, 7> tableau_;
+  MoveManager &moveManager_;
+  std::array<CardRow, 7> tableau_ =
+      [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+        return std::array<CardRow, 7>{
+            {std::vector<CardRow>(sizeof...(Is), CardRow(Is, moveManager_))
+                 .at(Is)...}};
+      }(std::make_index_sequence<7>{});
 };
 
 class ReserveStack {
@@ -85,7 +94,8 @@ private:
   Cards stack_;
 };
 
-typedef std::variant<Tableau::CardPosition> CardPosition;
+typedef std::variant<Tableau::CardPosition, Tableau::AppendCardPosition>
+    CardPosition;
 
 class Board {
 public:
