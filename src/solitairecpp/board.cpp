@@ -228,12 +228,13 @@ ft::Component Foundations::placeholder(size_t index) {
                          element |= Card::cardWidth | Card::cardHeight;
                          element |= ft::border;
 
-                         if (state.active) {
+                         if (state.active)
                            element |= ft::bold;
-                         }
-                         if (state.focused) {
+                         if (state.focused)
                            element |= ft::inverted;
-                         }
+                         if (moveManager_.moveTransactionOpen())
+                           element |= ft::color(ft::Color::Green);
+
                          return element;
                        }})});
 }

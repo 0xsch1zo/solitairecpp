@@ -121,7 +121,7 @@ ft::Component CardRow::component() const {
                      Tableau::AppendCardPosition{.cardRowIndex = index_}))
                element |= ft::color(ft::Color::Red);
 
-             return element;
+             return element | ft::color(ft::Color::Green);
            }});
   return std::move(ft::Container::Vertical({cardsComponent_, moveTargetBar}));
 }
