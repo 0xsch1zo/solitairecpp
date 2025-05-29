@@ -90,9 +90,10 @@ public:
   // Tempororary remove at release
   std::string getArt() const { return art_; }
 
-private:
   static inline const auto cardWidth = ft::size(ft::WIDTH, ft::EQUAL, 15);
   static inline const auto cardHeight = ft::size(ft::HEIGHT, ft::EQUAL, 4);
+
+private:
   std::shared_ptr<bool> hidden_;
   CardValue value_;
   CardType type_;

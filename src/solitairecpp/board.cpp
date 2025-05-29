@@ -8,8 +8,10 @@
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/move_manager.hpp>
 #include <stdexcept>
+#include <thread>
 
 namespace solitairecpp {
+
 Tableau::Tableau(StartCards cards, MoveManager &moveManager)
     : moveManager_{moveManager} {
   std::vector cardsVec(cards.begin(), cards.end()); // it's just easier to copy
@@ -179,7 +181,8 @@ ft::Component ReserveStack::component() {
 
 std::expected<ReserveStack::CardPosition, Error>
 ReserveStack::searchViewable(const CardCode &code) {
-  for (size_t i{1}; i <= hardDifficultyViewableAmount; i++) {
+  for (size_t i{1};
+       i <= std::min(hardDifficultyViewableAmount, viewedCards_.size()); i++) {
     if (viewedCards_.at(viewedCards_.size() - i).code() == code)
       return CardPosition{};
   }
@@ -202,6 +205,69 @@ std::expected<void, Error> ReserveStack::deleteTopCard() {
   return std::expected<void, Error>();
 }
 
+Foundations::Foundations(MoveManager &moveManager)
+    : moveManager_{moveManager}, component_{ft::Container::Horizontal({})} {
+  for (size_t i{}; i < foundations_.size(); i++)
+    component_->Add(placeholder(i));
+}
+
+// empty card field. contiainer vertical is used because the lib doesn't
+// offer a way to insert components at an index from what I know
+ft::Component Foundations::placeholder(size_t index) {
+  return ft::Container::Vertical(
+      {ft::Button({.on_click =
+                       [=, *this] {
+                         std::thread([=, *this] {
+                           moveManager_.setMoveTarget(
+                               CardPosition{.foundationIndex = index});
+                         }).detach();
+                       },
+                   .transform =
+                       [=, *this](const ft::EntryState state) {
+                         auto element = ft::text("");
+                         element |= Card::cardWidth | Card::cardHeight;
+                         element |= ft::border;
+
+                         if (state.active) {
+                           element |= ft::bold;
+                         }
+                         if (state.focused) {
+                           element |= ft::inverted;
+                         }
+                         return element;
+                       }})});
+}
+
+std::expected<void, Error> Foundations::set(const CardPosition &pos,
+                                            const Card &card) {
+  if (pos.foundationIndex >= foundations_.size() ||
+      pos.foundationIndex >= component_->ChildCount())
+    return std::unexpected(ErrorInvalidCardIndex().error());
+
+  foundations_.at(pos.foundationIndex) = card;
+  component_->ChildAt(pos.foundationIndex)
+      ->DetachAllChildren(); // hack to get insertion working as previously
+                             // mentionedd
+  component_->ChildAt(pos.foundationIndex)->Add(card.component());
+  return std::expected<void, Error>();
+}
+
+ft::Component Foundations::component() { return component_; }
+
+std::expected<Foundations::CardPosition, Error>
+Foundations::search(const CardCode &code) {
+  for (const auto [i, foundation] :
+       std::views::zip(std::views::iota(0UL), foundations_)) {
+    if (!foundation.has_value())
+      continue;
+
+    if (foundation->code() == code)
+      return CardPosition{.foundationIndex = i};
+  }
+
+  return std::unexpected(ErrorCardPositionNotFound(code).error());
+}
+
 Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
   Cards deck = buildDeck();
 
@@ -210,8 +276,9 @@ Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
         return Tableau::StartCards{{deck.at(Is)...}};
       }(std::make_index_sequence<
           Tableau::startCardsSize>{}); // This is just initializing the array
-                                       // with elements from the deck. Yes there
-                                       // is problably no other simpler way.
+                                       // with elements from the deck. Yes
+                                       // there is problably no other simpler
+                                       // way.
   tableau_ = std::make_unique<Tableau>(tabelauCards, *moveManager_);
   deck.erase(deck.begin(), deck.begin() + Tableau::startCardsSize);
 
@@ -224,9 +291,9 @@ Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
 }
 
 ft::Component Board::component() const {
-  // Add the rest of board elements
-  return ft::Container::Horizontal(
-      {reserveStack_->component(), tableau_->component()});
+  return ft::Container::Horizontal({foundations_->component(),
+                                    tableau_->component(),
+                                    reserveStack_->component()});
 }
 
 Cards Board::buildDeck() {
@@ -258,11 +325,18 @@ std::expected<CardPosition, Error> Board::search(const CardCode &code) const {
   auto reserveStackPos = reserveStack_->searchViewable(code);
   if (reserveStackPos)
     return reserveStackPos.value();
+
+  auto foundationsStackPos = foundations_->search(code);
+  if (foundationsStackPos)
+    return foundationsStackPos.value();
+
   return std::unexpected(ErrorCardPositionNotFound(code).error());
 }
 
 Tableau &Board::tableau() const { return *tableau_; }
 
 ReserveStack &Board::reserveStack() const { return *reserveStack_; }
+
+Foundations &Board::foundations() const { return *foundations_; }
 
 } // namespace solitairecpp

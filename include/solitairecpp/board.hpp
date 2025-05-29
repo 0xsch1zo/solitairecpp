@@ -114,8 +114,35 @@ private:
   ft::Component viewableCardsComponent_;
 };
 
+class Foundations {
+public:
+  struct CardPosition {
+    size_t foundationIndex;
+  };
+
+public:
+  Foundations(MoveManager &moveManager);
+  std::expected<void, Error>
+  set(const CardPosition &pos,
+      const Card &card); // The previous card values just get deleted. In my
+                         // vision that's what shoud happen.
+  ft::Component component();
+
+  // search is not directly needed but it eases
+  // the job for classes that use it
+  std::expected<CardPosition, Error> search(const CardCode &code);
+
+private:
+  ft::Component placeholder(size_t index);
+
+private:
+  std::array<std::optional<Card>, 4> foundations_;
+  ft::Component component_;
+  MoveManager &moveManager_;
+};
+
 typedef std::variant<Tableau::CardPosition, Tableau::AppendCardPosition,
-                     ReserveStack::CardPosition>
+                     ReserveStack::CardPosition, Foundations::CardPosition>
     CardPosition;
 
 class Board {
@@ -131,10 +158,12 @@ public:
 
   ReserveStack &reserveStack() const;
   Tableau &tableau() const;
+  Foundations &foundations() const;
 
 private:
-  std::unique_ptr<ReserveStack> reserveStack_ = nullptr;
   std::unique_ptr<Tableau> tableau_ = nullptr;
+  std::unique_ptr<ReserveStack> reserveStack_ = nullptr;
+  std::unique_ptr<Foundations> foundations_ = nullptr;
   std::unique_ptr<MoveManager> moveManager_;
 };
 
