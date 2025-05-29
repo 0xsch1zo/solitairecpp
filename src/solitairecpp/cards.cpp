@@ -117,10 +117,10 @@ std::expected<void, Error> CardRow::deleteFrom(const CardPosition &pos) {
   if (pos.cardIndex >= cards_.size())
     return std::unexpected(ErrorInvalidCardIndex().error());
 
-  for (size_t i{pos.cardIndex}; i < cards_.size(); i++) {
-    cards_.erase(cards_.begin() + i);
-    component_->ChildAt(i)->Detach();
-  }
+  for (size_t i{pos.cardIndex}; i < cards_.size(); i++)
+    component_->ChildAt(pos.cardIndex)->Detach();
+
+  cards_.erase(cards_.begin() + pos.cardIndex, cards_.end());
   return std::expected<void, Error>();
 }
 
