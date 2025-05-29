@@ -5,7 +5,6 @@
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/error.hpp>
 #include <solitairecpp/move_manager.hpp>
-#include <stdexcept>
 
 namespace solitairecpp {
 
@@ -13,82 +12,41 @@ bool CardCode::operator==(const CardCode &rhs) const {
   return value == rhs.value && type == rhs.type;
 }
 
-std::string CardSerializer::Encode(const CardCode &cardCode) {
-  // Of course very advanced encoding is being used :)
-  // Think it's enogh for these purposes, using json seems to overkill
-  return std::format("{}{}{}{}", magic_, static_cast<int>(cardCode.value),
-                     delimeter_, static_cast<int>(cardCode.type));
-}
-
-std::expected<CardCode, Error>
-CardSerializer::Decode(const std::string &serializedCard) {
-  if (!serializedCard.starts_with(magic_))
-    return std::unexpected(ErrorParser(serializedCard).error());
-
-  auto serializedCardPreParsed = serializedCard.substr(magic_.size());
-  auto delimeter = serializedCardPreParsed.find(delimeter_);
-  if (delimeter == std::string::npos ||
-      delimeter == serializedCardPreParsed.size() - 1) // Can't be the last item
-    return std::unexpected(ErrorParser(serializedCard).error());
-
-  int cardValue{}, cardType{};
-  try {
-    cardValue = std::stoi(serializedCardPreParsed.substr(0, delimeter));
-    cardType = std::stoi(serializedCardPreParsed.substr(delimeter + 1));
-  } catch (std::invalid_argument
-               &e) { // Yes it could be handled with just std::excpetion but I
-                     // think it's better in terms of clarity
-    return std::unexpected(ErrorParser(serializedCard).error());
-  } catch (std::out_of_range &e) {
-    return std::unexpected(ErrorParser(serializedCard).error());
-  }
-
-  if (cardValue < 0 || cardValue >= static_cast<int>(CardValue::Count))
-    return std::unexpected(ErrorParser(serializedCard).error());
-  if (cardType < 0 || cardType >= static_cast<int>(CardType::Count))
-    return std::unexpected(ErrorParser(serializedCard).error());
-
-  return CardCode{.value = static_cast<CardValue>(cardValue),
-                  .type = static_cast<CardType>(cardType)};
-}
-
-Card::Card(const MoveManager &moveManager, CardValue value, CardType type,
+Card::Card(MoveManager &moveManager, CardValue value, CardType type,
            std::string art, bool hidden)
     : moveManager_{moveManager}, value_{value}, type_{type}, art_{art},
       hidden_{std::make_shared<bool>(hidden)} {
-  component_ = ft::Button(
-      {.on_click =
-           [=, *this] {
-             if (*hidden_)
-               return;
-             auto *screen = ft::ScreenInteractive::Active();
-             if (screen == nullptr)
-               throw std::runtime_error(
-                   "Couldn't get handle on current screen"); // Cooked
+  component_ =
+      ft::Button({.on_click =
+                      [=, *this] {
+                        if (*hidden_)
+                          return;
 
-             screen->PostEvent(ft::Event::Special(
-                 CardSerializer::Encode({.value = value_, .type = type_})));
-           },
-       .transform =
-           [=, *this](const ft::EntryState state) {
-             auto element = ft::text(*hidden_ ? "hidden" : art_);
-             element |= cardWidth | cardHeight;
-             element |= ft::border;
-             if (moveManager_.isBeingMoved(code()))
-               element |= ft::color(ft::Color::Green);
+                        std::thread([*this] {
+                          moveManager_.cardSelected(code());
+                        }).detach();
+                      },
+                  .transform =
+                      [=, *this](const ft::EntryState state) {
+                        auto element = ft::text(*hidden_ ? "hidden" : art_);
+                        element |= cardWidth | cardHeight;
+                        element |= ft::border;
+                        if (moveManager_.isBeingMoved(code()))
+                          element |= ft::color(ft::Color::Green);
 
-             // shoud not focus if the transaction is open or the card is hidden
-             if (moveManager_.moveTransactionOpen() || *hidden_)
-               return element;
+                        // shoud not focus if the transaction is open or the
+                        // card is hidden
+                        if (moveManager_.moveTransactionOpen() || *hidden_)
+                          return element;
 
-             if (state.active) {
-               element |= ft::bold;
-             }
-             if (state.focused) {
-               element |= ft::inverted;
-             }
-             return element;
-           }});
+                        if (state.active) {
+                          element |= ft::bold;
+                        }
+                        if (state.focused) {
+                          element |= ft::inverted;
+                        }
+                        return element;
+                      }});
 }
 
 Card &Card::operator=(const Card &other) {

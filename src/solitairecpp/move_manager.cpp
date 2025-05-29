@@ -35,6 +35,9 @@ bool MoveManager::isBeingMoved(const CardCode &code) const {
     return std::get<Tableau::AppendCardPosition>(from.value()) ==
            std::get<Tableau::AppendCardPosition>(position.value());
 
+  if (std::holds_alternative<ReserveStack::CardPosition>(from.value()))
+    return true;
+
   std::unreachable();
 }
 
@@ -85,6 +88,23 @@ std::expected<void, Error> MoveManager::Move() {
       if (!appendSuccess)
         throw std::runtime_error(appendSuccess.error()->what());
     }
+  } else if (std::holds_alternative<ReserveStack::CardPosition>(from)) {
+    if (std::holds_alternative<Tableau::AppendCardPosition>(to)) {
+      auto card = board_.reserveStack().getTopCard();
+      if (!card)
+        throw std::runtime_error(card.error()->what());
+
+      auto deleteSuccess = board_.reserveStack().deleteTopCard();
+      if (!deleteSuccess)
+        throw std::runtime_error(deleteSuccess.error()->what());
+
+      auto appendSuccess = board_.tableau().appendTo(
+          {.cardRowIndex =
+               std::get<Tableau::AppendCardPosition>(to).cardRowIndex},
+          {card.value()});
+      if (!appendSuccess)
+        throw std::runtime_error(appendSuccess.error()->what());
+    }
   } else {
     moveFrom_ = std::nullopt;
     moveTo_ = std::nullopt;
@@ -107,26 +127,19 @@ void MoveManager::setMoveTarget(const CardPosition &pos) {
     erroneusTarget_ = pos;
 };
 
-std::function<bool(ft::Event)> MoveManager::cardSelectedHandler() {
-  return [this](ft::Event event) -> bool {
-    auto card = CardSerializer::Decode(event.input());
-    if (!card)
-      return false;
+void MoveManager::cardSelected(const CardCode &code) {
+  // another move started so we reset the erroneusTarget_
+  if (erroneusTarget_.load().has_value())
+    erroneusTarget_ = std::nullopt;
 
-    // another move started so we reset the erroneusTarget_
-    if (erroneusTarget_.load().has_value())
-      erroneusTarget_ = std::nullopt;
+  // Find the thing
+  if (moveFrom_.load() == std::nullopt) {
+    auto position = board_.search(code);
+    if (!position)
+      throw std::runtime_error(position.error()->what());
 
-    // Find the thing
-    if (moveFrom_.load() == std::nullopt) {
-      auto position = board_.search(card.value());
-      if (!position)
-        throw std::runtime_error(position.error()->what());
-
-      moveFrom_ = position.value();
-    }
-    return true;
-  };
+    moveFrom_ = position.value();
+  }
 }
 
 } // namespace solitairecpp

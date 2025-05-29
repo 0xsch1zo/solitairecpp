@@ -41,18 +41,6 @@ struct CardCode {
   bool operator==(const CardCode &rhs) const;
 };
 
-class CardSerializer {
-public:
-  static std::string Encode(const CardCode &cardCode);
-
-  static std::expected<CardCode, Error>
-  Decode(const std::string &serializedCard);
-
-private:
-  static constexpr std::string magic_ = "CardCode: ";
-  static constexpr std::string delimeter_ = "x";
-};
-
 class ErrorInvalidCardRange : public ErrorBase {
 public:
   std::string what() override {
@@ -71,30 +59,14 @@ public:
   Error error() override { return std::make_shared<ErrorInvalidCardIndex>(); }
 };
 
-class ErrorParser : public ErrorBase {
-public:
-  ErrorParser(const std::string &invalidString)
-      : invalidString_{invalidString} {}
-  std::string what() override {
-    return std::format("Invalid string was passed to the parser: {}",
-                       invalidString_);
-  }
-
-  Error error() override {
-    return std::make_shared<ErrorParser>(invalidString_);
-  }
-
-private:
-  std::string invalidString_;
-};
-
 class ErrorCardPositionNotFound : public ErrorBase {
 public:
   ErrorCardPositionNotFound(const CardCode &code) : code_{code} {}
 
   std::string what() override {
-    return std::format("Card with the supplied code was not found: {}",
-                       CardSerializer::Encode(code_));
+    return std::format("Card with the supplied code was not found: {} {}",
+                       static_cast<size_t>(code_.value),
+                       static_cast<size_t>(code_.type));
   }
 
   Error error() override {
@@ -107,7 +79,7 @@ private:
 
 class Card {
 public:
-  Card(const MoveManager &moveManager, CardValue value, CardType type,
+  Card(MoveManager &moveManager, CardValue value, CardType type,
        std::string art, bool hidden = true);
   Card &operator=(const Card &other);
 
@@ -126,7 +98,7 @@ private:
   CardType type_;
   std::string art_ = "art not initalized";
   ft::Component component_;
-  const MoveManager &moveManager_;
+  MoveManager &moveManager_;
 };
 
 typedef std::vector<Card> Cards;

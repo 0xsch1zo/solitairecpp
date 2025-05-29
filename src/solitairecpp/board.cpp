@@ -120,23 +120,28 @@ void ReserveStack::revealEasy() {
 }
 
 void ReserveStack::revealHard() {
-  viewedCards_.insert(viewedCards_.end(), hiddenCards_.begin(),
-                      hiddenCards_.begin() + hardDifficultyViewableAmount);
-  if (hiddenCards_.size() < hardDifficultyViewableAmount)
-    throw std::runtime_error("invalid card count in reserve stack");
+  if (hiddenCards_.size() < hardDifficultyViewableAmount) {
+    viewedCards_.insert(viewedCards_.end(), hiddenCards_.begin(),
+                        hiddenCards_.end());
 
-  hiddenCards_.erase(hiddenCards_.begin(),
-                     hiddenCards_.begin() + hardDifficultyViewableAmount);
+    hiddenCards_.erase(hiddenCards_.begin(), hiddenCards_.end());
+  } else {
+    viewedCards_.insert(viewedCards_.end(), hiddenCards_.begin(),
+                        hiddenCards_.begin() + hardDifficultyViewableAmount);
+
+    hiddenCards_.erase(hiddenCards_.begin(),
+                       hiddenCards_.begin() + hardDifficultyViewableAmount);
+  }
 
   viewableCardsComponent_->DetachAllChildren();
-  for (size_t i{1}; i <= hardDifficultyViewableAmount; i++)
-    viewableCardsComponent_->Add(
-        viewedCards_.at(viewedCards_.size() - i).component());
+  viewableCardsComponent_->Add(viewedCards_.back().component());
 }
 
 void ReserveStack::reveal() {
-  if (hiddenCards_.size() == 0)
+  if (hiddenCards_.size() == 0 && viewedCards_.size() != 0)
     moveToHiddenAndShuffle();
+  else if (hiddenCards_.size() == 0)
+    return; // we ran out of cards
 
   switch (mode_) {
   case Difficulty::Easy:
@@ -154,7 +159,10 @@ ft::Component ReserveStack::component() {
                    .transform =
                        [&](const ft::EntryState state) {
                          ft::Element element;
-                         if (hiddenCards_.size() == 0)
+                         if (hiddenCards_.size() == 0 &&
+                             viewedCards_.size() <= 1)
+                           element = ft::text("No more cards in reserve");
+                         else if (hiddenCards_.size() == 0)
                            element = ft::text("shuffle");
                          else
                            element = ft::text("reserve stack - hidden");
@@ -165,10 +173,33 @@ ft::Component ReserveStack::component() {
                          if (state.focused)
                            element |= ft::inverted;
                          return element;
-                       }
-
-       }),
+                       }}),
        viewableCardsComponent_});
+}
+
+std::expected<ReserveStack::CardPosition, Error>
+ReserveStack::searchViewable(const CardCode &code) {
+  for (size_t i{1}; i <= hardDifficultyViewableAmount; i++) {
+    if (viewedCards_.at(viewedCards_.size() - i).code() == code)
+      return CardPosition{};
+  }
+
+  return std::unexpected(ErrorCardPositionNotFound(code).error());
+}
+
+std::expected<Card, Error> ReserveStack::getTopCard() {
+  if (viewedCards_.size() < 0)
+    return std::unexpected(ErrorInvalidCardIndex().error());
+  return viewedCards_.back();
+}
+
+std::expected<void, Error> ReserveStack::deleteTopCard() {
+  if (viewableCardsComponent_->ChildCount() == 0 || viewedCards_.size() == 0)
+    return std::unexpected(ErrorInvalidCardIndex().error());
+
+  viewableCardsComponent_->DetachAllChildren();
+  viewedCards_.erase(viewedCards_.end() - 1);
+  return std::expected<void, Error>();
 }
 
 Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
@@ -194,11 +225,8 @@ Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
 
 ft::Component Board::component() const {
   // Add the rest of board elements
-  return ft::Container::Horizontal({
-      reserveStack_->component(),
-      tableau_->component() |
-          ft::CatchEvent(moveManager_->cardSelectedHandler()),
-  });
+  return ft::Container::Horizontal(
+      {reserveStack_->component(), tableau_->component()});
 }
 
 Cards Board::buildDeck() {
@@ -227,6 +255,9 @@ std::expected<CardPosition, Error> Board::search(const CardCode &code) const {
   if (tableauPos)
     return tableauPos.value();
 
+  auto reserveStackPos = reserveStack_->searchViewable(code);
+  if (reserveStackPos)
+    return reserveStackPos.value();
   return std::unexpected(ErrorCardPositionNotFound(code).error());
 }
 

@@ -16,7 +16,7 @@ class MoveManager {
 public:
   MoveManager(const Board &elements);
 
-  std::function<bool(ft::Event)> cardSelectedHandler();
+  void cardSelected(const CardCode &code);
   void setMoveTarget(const CardPosition &pos);
 
   bool isBeingMoved(const CardCode &code) const;

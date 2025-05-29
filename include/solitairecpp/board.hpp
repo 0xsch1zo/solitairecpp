@@ -90,10 +90,16 @@ public:
   static constexpr size_t startCardsSize = 24;
   typedef std::array<Card, startCardsSize> StartCards;
 
+  struct CardPosition {}; // it's empty because we always will take the top one
+                          // no matter the difficulty
+
 public:
   ReserveStack(Difficulty mode, StartCards cards); // Copying on purpose
   void reveal();
   ft::Component component();
+  std::expected<CardPosition, Error> searchViewable(const CardCode &code);
+  std::expected<Card, Error> getTopCard();
+  std::expected<void, Error> deleteTopCard();
 
 private:
   void moveToHiddenAndShuffle();
@@ -108,7 +114,8 @@ private:
   ft::Component viewableCardsComponent_;
 };
 
-typedef std::variant<Tableau::CardPosition, Tableau::AppendCardPosition>
+typedef std::variant<Tableau::CardPosition, Tableau::AppendCardPosition,
+                     ReserveStack::CardPosition>
     CardPosition;
 
 class Board {
