@@ -138,6 +138,9 @@ public:
   // the job for classes that use it
   std::expected<CardPosition, Error> search(const CardCode &code);
 
+  std::expected<bool, Error> isSetLegal(const CardPosition &pos,
+                                        const Card &card);
+
 private:
   ft::Component placeholder(size_t index);
 

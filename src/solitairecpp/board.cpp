@@ -271,11 +271,15 @@ std::expected<void, Error> Foundations::set(const CardPosition &pos,
       pos.foundationIndex >= component_->ChildCount())
     return std::unexpected(ErrorInvalidCardIndex().error());
 
+  if (!isSetLegal(pos, card))
+    return std::unexpected(ErrorIllegalMove().error());
+
   foundations_.at(pos.foundationIndex) = card;
   component_->ChildAt(pos.foundationIndex)
       ->DetachAllChildren(); // hack to get insertion working as previously
                              // mentionedd
-  component_->ChildAt(pos.foundationIndex)->Add(card.component());
+  component_->ChildAt(pos.foundationIndex)
+      ->Add(FoundationCard(card).component());
   return std::expected<void, Error>();
 }
 
@@ -293,6 +297,20 @@ Foundations::search(const CardCode &code) {
   }
 
   return std::unexpected(ErrorCardPositionNotFound(code).error());
+}
+
+std::expected<bool, Error> Foundations::isSetLegal(const CardPosition &pos,
+                                                   const Card &card) {
+  if (pos.foundationIndex >= foundations_.size())
+    return std::unexpected(ErrorInvalidCardIndex().error());
+
+  const auto &foundation = foundations_.at(pos.foundationIndex);
+  if (!foundation.has_value())
+    return card.code().value == CardValue::Ace;
+
+  return static_cast<int>(card.code().value) ==
+             static_cast<int>(foundation->code().value) + 1 &&
+         card.code().type == foundation->code().type;
 }
 
 Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {

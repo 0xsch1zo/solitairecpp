@@ -1,3 +1,4 @@
+#include "solitairecpp/error.hpp"
 #include <expected>
 #include <ftxui/component/event.hpp>
 #include <ftxui/component/screen_interactive.hpp>
@@ -33,8 +34,7 @@ bool MoveManager::moveTransactionOpen() const {
 
 std::expected<void, Error> MoveManager::Move() {
   if (!moveFrom_.load().has_value() || !moveTo_.load().has_value()) {
-    moveFrom_ = std::nullopt;
-    moveTo_ = std::nullopt;
+    endTransaction();
     return std::unexpected(ErrorIllegalMove().error());
   }
 
@@ -45,28 +45,32 @@ std::expected<void, Error> MoveManager::Move() {
       std::holds_alternative<Tableau::AppendCardPosition>(to)) {
     auto success = moveHelper(std::get<Tableau::CardPosition>(from),
                               std::get<Tableau::AppendCardPosition>(to));
-    if (!success)
+    if (!success) {
+      endTransaction();
       return std::unexpected(success.error());
+    }
   } else if (std::holds_alternative<Tableau::CardPosition>(from) &&
              std::holds_alternative<Foundations::CardPosition>(to)) {
     auto success = moveHelper(std::get<Tableau::CardPosition>(from),
                               std::get<Foundations::CardPosition>(to));
-    if (!success)
+    if (!success) {
+      endTransaction();
       return std::unexpected(success.error());
+    }
   } else if (std::holds_alternative<ReserveStack::CardPosition>(from) &&
              std::holds_alternative<Tableau::AppendCardPosition>(to)) {
     auto success = moveHelper(std::get<ReserveStack::CardPosition>(from),
                               std::get<Tableau::AppendCardPosition>(to));
-    if (!success)
+    if (!success) {
+      endTransaction();
       return std::unexpected(success.error());
+    }
   } else {
-    moveFrom_ = std::nullopt;
-    moveTo_ = std::nullopt;
+    endTransaction();
     return std::unexpected(ErrorIllegalMove().error());
   }
 
-  moveFrom_ = std::nullopt;
-  moveTo_ = std::nullopt;
+  endTransaction();
   return std::expected<void, Error>();
 }
 
@@ -89,9 +93,8 @@ MoveManager::moveHelper(const Tableau::CardPosition &from,
     throw std::runtime_error(deleteSuccess.error()->what());
 
   auto appendSuccess = board_.tableau().appendTo(to, cards.value());
-  if (!appendSuccess) {
+  if (!appendSuccess)
     throw std::runtime_error(appendSuccess.error()->what());
-  }
 
   return std::expected<void, Error>();
 }
@@ -107,6 +110,12 @@ MoveManager::moveHelper(const Tableau::CardPosition &from,
   if (card.value().size() > 1) // cards get set one by one to foundations
     return std::unexpected(ErrorIllegalMove().error());
 
+  auto legalSuccess = board_.foundations().isSetLegal(to, card.value().at(0));
+  if (!legalSuccess)
+    throw std::runtime_error(card.error()->what());
+  if (!legalSuccess.value())
+    return std::unexpected(ErrorIllegalMove().error());
+
   auto deleteSuccess = board_.tableau().deleteFrom(from);
   if (!deleteSuccess)
     throw std::runtime_error(deleteSuccess.error()->what());
@@ -114,7 +123,7 @@ MoveManager::moveHelper(const Tableau::CardPosition &from,
   auto appendSuccess = board_.foundations().set(
       {.foundationIndex = to.foundationIndex}, card.value().at(0));
   if (!appendSuccess)
-    return std::unexpected(appendSuccess.error());
+    throw std::runtime_error(appendSuccess.error()->what());
 
   return std::expected<void, Error>();
 }
@@ -157,6 +166,14 @@ void MoveManager::setMoveTarget(const CardPosition &pos) {
     erroneusTarget_ = pos;
 };
 
+void MoveManager::setMoveTarget(const CardCode &code) {
+  auto position = board_.search(code);
+  if (!position)
+    throw std::runtime_error(position.error()->what());
+
+  setMoveTarget(position.value());
+}
+
 void MoveManager::cardSelected(const CardCode &code) {
   // another move started so we reset the erroneusTarget_
   if (erroneusTarget_.load().has_value())
@@ -170,6 +187,11 @@ void MoveManager::cardSelected(const CardCode &code) {
 
     moveFrom_ = position.value();
   }
+}
+
+void MoveManager::endTransaction() {
+  moveFrom_ = std::nullopt;
+  moveTo_ = std::nullopt;
 }
 
 } // namespace solitairecpp

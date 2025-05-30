@@ -87,7 +87,7 @@ public:
 
   void show();
   CardCode code() const;
-  ft::Component component() const;
+  virtual ft::Component component() const;
   CardColor color() const;
 
   // Tempororary remove at release
@@ -96,14 +96,22 @@ public:
   static inline const auto cardWidth = ft::size(ft::WIDTH, ft::EQUAL, 15);
   static inline const auto cardHeight = ft::size(ft::HEIGHT, ft::EQUAL, 4);
 
+protected:
+  ft::Component component_;
+  CardColor color_;
+  MoveManager &moveManager_;
+  std::string art_ = "art not initalized";
+
 private:
   std::shared_ptr<bool> hidden_;
   CardValue value_;
   CardType type_;
-  CardColor color_;
-  std::string art_ = "art not initalized";
-  ft::Component component_;
-  MoveManager &moveManager_;
+};
+
+class FoundationCard : public Card {
+public:
+  FoundationCard(const Card &card);
+  ft::Component component() const override;
 };
 
 typedef std::vector<Card> Cards;

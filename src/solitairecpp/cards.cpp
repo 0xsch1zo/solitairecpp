@@ -48,7 +48,7 @@ Card::Card(MoveManager &moveManager, CardValue value, CardType type,
                         }
 
                         // shoud not focus if the transaction is open or the
-                        // card is hidden
+                        // card is hidden, unless we are targetable;
                         if (moveManager_.moveTransactionOpen() || *hidden_)
                           return element;
 
@@ -82,6 +82,40 @@ ft::Component Card::component() const { return std::move(component_); }
 CardCode Card::code() const { return {.value = value_, .type = type_}; }
 
 CardColor Card::color() const { return color_; }
+
+FoundationCard::FoundationCard(const Card &card) : Card(card) {
+  component_ = ft::Button({.on_click =
+                               [=, *this] {
+                                 std::thread([*this] {
+                                   moveManager_.setMoveTarget(code());
+                                 }).detach();
+                               },
+                           .transform =
+                               [=, *this](const ft::EntryState state) {
+                                 auto element = ft::text(art_);
+                                 element |= cardWidth | cardHeight;
+                                 element |= ft::border;
+
+                                 switch (color_) {
+                                 case CardColor::Red:
+                                   element |= ft::color(ft::Color::Red);
+                                   break;
+                                 case CardColor::Black:
+                                   element |= ft::color(ft::Color::GrayDark);
+                                   break;
+                                 }
+
+                                 if (state.active) {
+                                   element |= ft::bold;
+                                 }
+                                 if (state.focused) {
+                                   element |= ft::inverted;
+                                 }
+                                 return element;
+                               }});
+}
+
+ft::Component FoundationCard::component() const { return component_; }
 
 CardRow::CardRow(size_t index, MoveManager &moveManager)
     : cardsComponent_{ft::Container::Vertical({})}, moveManager_{moveManager},

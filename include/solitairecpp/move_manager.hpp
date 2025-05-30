@@ -17,9 +17,9 @@ public:
   MoveManager(const Board &elements);
 
   void cardSelected(const CardCode &code);
+  void setMoveTarget(const CardCode &code);
   void setMoveTarget(const CardPosition &pos);
 
-  bool isBeingMoved(const CardCode &code) const;
   bool isMoveTarget(const CardPosition &pos) const;
   bool isTargetError(const CardPosition &pos) const;
   bool moveTransactionOpen() const;
@@ -32,6 +32,7 @@ private:
                                         const Foundations::CardPosition &to);
   std::expected<void, Error> moveHelper(const ReserveStack::CardPosition &from,
                                         const Tableau::AppendCardPosition &to);
+  void endTransaction();
 
 private:
   const Board &board_;
