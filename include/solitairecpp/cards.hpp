@@ -101,6 +101,7 @@ protected:
   CardColor color_;
   MoveManager &moveManager_;
   std::string art_ = "art not initalized";
+  static constexpr inline std::string backsideArt_ = "Solitairecpp"; // art btw
 
 private:
   std::shared_ptr<bool> hidden_;

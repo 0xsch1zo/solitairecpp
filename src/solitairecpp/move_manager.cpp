@@ -14,6 +14,14 @@ namespace solitairecpp {
 
 MoveManager::MoveManager(const Board &elements) : board_{elements} {}
 
+void MoveManager::rollback() {
+  /*(auto transaction = history_.back();
+  if (std::holds_alternative<Tableau::CardPosition>(transaction.from) &&
+      std::holds_alternative<Tableau::AppendCardPosition>(transaction.to)) {
+    board_.tableau().
+  }*/
+}
+
 bool MoveManager::isTargetError(const CardPosition &pos) const {
   if (!erroneusTarget_.load().has_value())
     return false;
@@ -70,6 +78,8 @@ std::expected<void, Error> MoveManager::Move() {
     return std::unexpected(ErrorIllegalMove().error());
   }
 
+  // if (history_.size() < maxHistorySize_)
+  //  history_.emplace_back(from, to);
   endTransaction();
   return std::expected<void, Error>();
 }

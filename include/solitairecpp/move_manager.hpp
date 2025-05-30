@@ -24,6 +24,14 @@ public:
   bool isTargetError(const CardPosition &pos) const;
   bool moveTransactionOpen() const;
 
+  void rollback();
+
+private:
+  struct moveTransaction {
+    CardPosition from;
+    CardPosition to;
+  };
+
 private:
   std::expected<void, Error> Move();
   std::expected<void, Error> moveHelper(const Tableau::CardPosition &from,
@@ -35,6 +43,8 @@ private:
   void endTransaction();
 
 private:
+  static constexpr size_t maxHistorySize_ = 3;
+  std::vector<moveTransaction> history_;
   const Board &board_;
   std::atomic<std::optional<CardPosition>>
       moveFrom_; // only when move sequence is initiated

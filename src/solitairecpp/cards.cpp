@@ -20,46 +20,47 @@ Card::Card(MoveManager &moveManager, CardValue value, CardType type,
     color_ = CardColor::Red;
   else
     color_ = CardColor::Black;
-  component_ =
-      ft::Button({.on_click =
-                      [=, *this] {
-                        if (*hidden_)
-                          return;
+  component_ = ft::Button(
+      {.on_click =
+           [=, *this] {
+             if (*hidden_)
+               return;
 
-                        std::thread([*this] {
-                          moveManager_.cardSelected(code());
-                        }).detach();
-                      },
-                  .transform =
-                      [=, *this](const ft::EntryState state) {
-                        auto element = ft::text(*hidden_ ? "hidden" : art_);
-                        element |= cardWidth | cardHeight;
-                        element |= ft::border;
+             std::thread([*this] {
+               moveManager_.cardSelected(code());
+             }).detach();
+           },
+       .transform =
+           [=, *this](const ft::EntryState state) {
+             auto element =
+                 ft::text(*hidden_ ? backsideArt_ : art_) | ft::center;
+             element |= cardWidth | cardHeight;
+             element |= ft::border;
 
-                        if (!*hidden_) {
-                          switch (color_) {
-                          case CardColor::Red:
-                            element |= ft::color(ft::Color::Red);
-                            break;
-                          case CardColor::Black:
-                            element |= ft::color(ft::Color::GrayDark);
-                            break;
-                          }
-                        }
+             if (!*hidden_) {
+               switch (color_) {
+               case CardColor::Red:
+                 element |= ft::color(ft::Color::Red);
+                 break;
+               case CardColor::Black:
+                 element |= ft::color(ft::Color::GrayDark);
+                 break;
+               }
+             }
 
-                        // shoud not focus if the transaction is open or the
-                        // card is hidden, unless we are targetable;
-                        if (moveManager_.moveTransactionOpen() || *hidden_)
-                          return element;
+             // shoud not focus if the transaction is open or the
+             // card is hidden, unless we are targetable;
+             if (moveManager_.moveTransactionOpen() || *hidden_)
+               return element;
 
-                        if (state.active) {
-                          element |= ft::bold;
-                        }
-                        if (state.focused) {
-                          element |= ft::inverted;
-                        }
-                        return element;
-                      }});
+             if (state.active) {
+               element |= ft::bold;
+             }
+             if (state.focused) {
+               element |= ft::inverted;
+             }
+             return element;
+           }});
 }
 
 Card &Card::operator=(const Card &other) {

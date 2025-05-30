@@ -1,5 +1,8 @@
 #include <algorithm>
 #include <ftxui/component/component.hpp>
+#include <ftxui/component/screen_interactive.hpp>
+#include <ftxui/dom/elements.hpp>
+#include <ftxui/dom/node.hpp>
 #include <memory>
 #include <print>
 #include <random>
@@ -7,6 +10,7 @@
 #include <solitairecpp/board.hpp>
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/move_manager.hpp>
+#include <stdexcept>
 #include <thread>
 
 namespace solitairecpp {
@@ -172,14 +176,16 @@ ft::Component ReserveStack::component() {
       {ft::Button({.on_click = [&] { reveal(); },
                    .transform =
                        [&](const ft::EntryState state) {
-                         ft::Element element;
+                         std::string label;
                          if (hiddenCards_.size() == 0 &&
                              viewedCards_.size() <= 1)
-                           element = ft::text("No more cards in reserve");
+                           label = "No more cards in reserve";
                          else if (hiddenCards_.size() == 0)
-                           element = ft::text("shuffle");
+                           label = "shuffle";
                          else
-                           element = ft::text("reserve stack - hidden");
+                           label = "reserve stack";
+                         auto element = ft::text(label) | ft::center;
+                         element |= Card::cardWidth | Card::cardHeight;
                          element |= ft::border;
 
                          if (state.active)
@@ -188,7 +194,13 @@ ft::Component ReserveStack::component() {
                            element |= ft::inverted;
                          return element;
                        }}),
-       viewableCardsComponent_});
+       ft::Renderer(viewableCardsComponent_, [*this] {
+         if (viewableCardsComponent_->ChildCount() == 0)
+           return ft::text("") | Card::cardWidth | Card::cardHeight |
+                  ft::border;
+         else
+           return viewableCardsComponent_->Render();
+       })});
 }
 
 std::expected<ReserveStack::CardPosition, Error>
@@ -313,6 +325,19 @@ std::expected<bool, Error> Foundations::isSetLegal(const CardPosition &pos,
          card.code().type == foundation->code().type;
 }
 
+ft::Component ExitButton::component() {
+  return ft::Button({
+      .label = "Exit Game",
+      .on_click =
+          [] {
+            auto *screen = ft::ScreenInteractive::Active();
+            if (screen == nullptr)
+              throw std::runtime_error("Couldn't get active screen to exit");
+            screen->Exit();
+          },
+  });
+}
+
 Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
   Cards deck = buildDeck();
 
@@ -336,9 +361,18 @@ Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
 }
 
 ft::Component Board::component() const {
-  return ft::Container::Horizontal({foundations_->component(),
-                                    tableau_->component(),
-                                    reserveStack_->component()});
+  auto sidepanel = ft::Container::Vertical({foundations_->component(),
+                                            reserveStack_->component(),
+                                            ExitButton::component()});
+  auto tableau = tableau_->component();
+
+  auto board = ft::Container::Horizontal({sidepanel, tableau});
+  return ft::Container::Horizontal({ft::Renderer(board, [=] {
+    return ft::hbox(ft::vbox(sidepanel->ChildAt(0)->Render(), ft::separator(),
+                             sidepanel->ChildAt(1)->Render(), ft::separator(),
+                             ft::filler(), sidepanel->ChildAt(2)->Render()),
+                    ft::separator(), ft::filler(), tableau->Render());
+  })});
 }
 
 Cards Board::buildDeck() {
@@ -357,7 +391,7 @@ Cards Board::buildDeck() {
   std::random_device rd;
   std::mt19937 gen{rd()};
 
-  // std::shuffle(deck.begin(), deck.end(), gen);
+  std::shuffle(deck.begin(), deck.end(), gen);
 
   return deck;
 }

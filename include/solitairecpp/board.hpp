@@ -150,6 +150,11 @@ private:
   MoveManager &moveManager_;
 };
 
+class ExitButton {
+public:
+  static ft::Component component();
+};
+
 typedef std::variant<Tableau::CardPosition, Tableau::AppendCardPosition,
                      ReserveStack::CardPosition, Foundations::CardPosition>
     CardPosition;
