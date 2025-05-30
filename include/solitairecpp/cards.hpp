@@ -33,6 +33,8 @@ enum class CardValue {
 
 enum class CardType { Hearts, Diamonds, Spades, Clubs, Count };
 
+enum class CardColor { Red, Black };
+
 // Due to each card in the deck being unique we can idenitfy them by thier value
 // combined with thier type/color.
 struct CardCode {
@@ -86,6 +88,7 @@ public:
   void show();
   CardCode code() const;
   ft::Component component() const;
+  CardColor color() const;
 
   // Tempororary remove at release
   std::string getArt() const { return art_; }
@@ -97,6 +100,7 @@ private:
   std::shared_ptr<bool> hidden_;
   CardValue value_;
   CardType type_;
+  CardColor color_;
   std::string art_ = "art not initalized";
   ft::Component component_;
   MoveManager &moveManager_;
@@ -118,6 +122,9 @@ public:
   std::expected<void, Error> deleteFrom(const CardPosition &pos);
   std::expected<Cards, Error> getCardsFrom(const CardPosition &pos);
   std::expected<CardPosition, Error> search(const CardCode &code) const;
+
+  bool isAppendLegal(const Cards &cards);
+  void illegalAppend(const Cards &cards);
 
 private:
   ft::Component cardsComponent_;

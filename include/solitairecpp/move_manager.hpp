@@ -26,6 +26,12 @@ public:
 
 private:
   std::expected<void, Error> Move();
+  std::expected<void, Error> moveHelper(const Tableau::CardPosition &from,
+                                        const Tableau::AppendCardPosition &to);
+  std::expected<void, Error> moveHelper(const Tableau::CardPosition &from,
+                                        const Foundations::CardPosition &to);
+  std::expected<void, Error> moveHelper(const ReserveStack::CardPosition &from,
+                                        const Tableau::AppendCardPosition &to);
 
 private:
   const Board &board_;

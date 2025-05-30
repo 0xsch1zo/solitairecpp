@@ -7,7 +7,6 @@
 #include <solitairecpp/board.hpp>
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/move_manager.hpp>
-#include <stdexcept>
 #include <thread>
 
 namespace solitairecpp {
@@ -20,11 +19,7 @@ Tableau::Tableau(StartCards cards, MoveManager &moveManager)
   for (auto &cardRow : tableau_) {
     std::vector cardRowCards(cardsVec.begin(), cardsVec.begin() + rowSize);
     cardRowCards.back().show(); // The last card is visible
-    auto err = cardRow.append(cardRowCards);
-    if (!err) {
-      throw std::runtime_error(err.error()->what());
-      return;
-    }
+    cardRow.illegalAppend(cardRowCards);
     cardsVec.erase(cardsVec.begin(), cardsVec.begin() + rowSize);
     rowSize++;
   }
@@ -60,6 +55,23 @@ std::expected<void, Error> Tableau::appendTo(const AppendCardPosition &pos,
     return std::unexpected(success.error());
 
   return std::expected<void, Error>();
+}
+
+std::expected<void, Error>
+Tableau::illegalAppendTo(const AppendCardPosition &pos, const Cards &cards) {
+  if (pos.cardRowIndex >= tableau_.size())
+    return std::unexpected(ErrorInvalidCardIndex().error());
+
+  tableau_.at(pos.cardRowIndex).illegalAppend(cards);
+  return std::expected<void, Error>();
+}
+
+std::expected<bool, Error>
+Tableau::isAppendToLegal(const AppendCardPosition &pos, const Cards &cards) {
+  if (pos.cardRowIndex >= tableau_.size())
+    return std::unexpected(ErrorInvalidCardIndex().error());
+
+  return tableau_.at(pos.cardRowIndex).isAppendLegal(cards);
 }
 
 std::expected<void, Error> Tableau::deleteFrom(const CardPosition &pos) {
@@ -202,6 +214,20 @@ std::expected<void, Error> ReserveStack::deleteTopCard() {
 
   viewableCardsComponent_->DetachAllChildren();
   viewedCards_.erase(viewedCards_.end() - 1);
+  return std::expected<void, Error>();
+}
+
+std::expected<void, Error> ReserveStack::setTopCard(const Card &card) {
+  viewedCards_.emplace_back(card);
+
+  if (mode_ == Difficulty::Easy && viewableCardsComponent_->ChildCount() == 1)
+    return std::unexpected(ErrorIllegalMove().error());
+
+  if (mode_ == Difficulty::Hard &&
+      viewableCardsComponent_->ChildCount() == hardDifficultyViewableAmount)
+    return std::unexpected(ErrorIllegalMove().error());
+
+  viewableCardsComponent_->Add(card.component());
   return std::expected<void, Error>();
 }
 

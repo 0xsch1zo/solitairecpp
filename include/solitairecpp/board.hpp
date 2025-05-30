@@ -75,6 +75,11 @@ public:
   std::expected<void, Error> deleteFrom(const CardPosition &pos);
   std::expected<Cards, Error> getCardsFrom(const CardPosition &pos);
 
+  std::expected<void, Error> illegalAppendTo(const AppendCardPosition &pos,
+                                             const Cards &cards);
+  std::expected<bool, Error> isAppendToLegal(const AppendCardPosition &pos,
+                                             const Cards &cards);
+
 private:
   MoveManager &moveManager_;
   std::array<CardRow, 7> tableau_ =
@@ -100,6 +105,7 @@ public:
   std::expected<CardPosition, Error> searchViewable(const CardCode &code);
   std::expected<Card, Error> getTopCard();
   std::expected<void, Error> deleteTopCard();
+  std::expected<void, Error> setTopCard(const Card &card);
 
 private:
   void moveToHiddenAndShuffle();
