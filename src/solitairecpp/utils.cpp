@@ -2,7 +2,7 @@
 
 namespace solitairecpp {
 
-ft::Elements utils::text_split(const std::string &text) {
+ft::Elements utils::textSplit(const std::string &text) {
   ft::Elements output;
   std::stringstream ss(text);
   std::string line;

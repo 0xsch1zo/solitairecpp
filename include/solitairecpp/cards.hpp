@@ -91,7 +91,7 @@ public:
   CardColor color() const;
 
   static inline const auto cardWidth = ft::size(ft::WIDTH, ft::EQUAL, 15);
-  static inline const auto cardHeight = ft::size(ft::HEIGHT, ft::EQUAL, 3);
+  static inline const auto cardHeight = ft::size(ft::HEIGHT, ft::EQUAL, 1);
 
 protected:
   ft::Component component_;

@@ -10,6 +10,7 @@
 #include <solitairecpp/board.hpp>
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/move_manager.hpp>
+#include <solitairecpp/utils.hpp>
 #include <stdexcept>
 #include <thread>
 
@@ -243,8 +244,10 @@ std::expected<void, Error> ReserveStack::setTopCard(const Card &card) {
   return std::expected<void, Error>();
 }
 
-Foundations::Foundations(MoveManager &moveManager)
-    : moveManager_{moveManager}, component_{ft::Container::Horizontal({})} {
+Foundations::Foundations(MoveManager &moveManager,
+                         std::function<void()> onGameWon)
+    : moveManager_{moveManager}, component_{ft::Container::Horizontal({})},
+      onGameWon_{onGameWon} {
   for (size_t i{}; i < foundations_.size(); i++)
     component_->Add(placeholder(i));
 }
@@ -286,12 +289,19 @@ std::expected<void, Error> Foundations::set(const CardPosition &pos,
   if (!isSetLegal(pos, card))
     return std::unexpected(ErrorIllegalMove().error());
 
-  foundations_.at(pos.foundationIndex) = card;
+  foundations_.at(pos.foundationIndex).emplace_back(card);
   component_->ChildAt(pos.foundationIndex)
       ->DetachAllChildren(); // hack to get insertion working as previously
                              // mentionedd
   component_->ChildAt(pos.foundationIndex)
       ->Add(FoundationCard(card).component());
+
+  for (const auto &foundation : foundations_) {
+    if (!foundation.empty() &&
+        foundation.back().code().value != CardValue::King)
+      return std::expected<void, Error>();
+  }
+  onGameWon_();
   return std::expected<void, Error>();
 }
 
@@ -301,10 +311,10 @@ std::expected<Foundations::CardPosition, Error>
 Foundations::search(const CardCode &code) {
   for (const auto [i, foundation] :
        std::views::zip(std::views::iota(0UL), foundations_)) {
-    if (!foundation.has_value())
+    if (foundation.empty())
       continue;
 
-    if (foundation->code() == code)
+    if (foundation.back().code() == code)
       return CardPosition{.foundationIndex = i};
   }
 
@@ -317,12 +327,12 @@ std::expected<bool, Error> Foundations::isSetLegal(const CardPosition &pos,
     return std::unexpected(ErrorInvalidCardIndex().error());
 
   const auto &foundation = foundations_.at(pos.foundationIndex);
-  if (!foundation.has_value())
+  if (foundation.empty())
     return card.code().value == CardValue::Ace;
 
   return static_cast<int>(card.code().value) ==
-             static_cast<int>(foundation->code().value) + 1 &&
-         card.code().type == foundation->code().type;
+             static_cast<int>(foundation.back().code().value) + 1 &&
+         card.code().type == foundation.back().code().type;
 }
 
 ft::Component ExitButton::component() {
@@ -338,7 +348,7 @@ ft::Component ExitButton::component() {
   });
 }
 
-Board::Board(Difficulty mode)
+Board::Board(Difficulty mode, std::function<void()> onGameWon)
     : moveManager_{std::make_unique<MoveManager>(*this)} {
   Cards deck = buildDeck();
 

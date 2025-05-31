@@ -127,7 +127,7 @@ public:
   };
 
 public:
-  Foundations(MoveManager &moveManager);
+  Foundations(MoveManager &moveManager, std::function<void()> onGameWon);
   std::expected<void, Error>
   set(const CardPosition &pos,
       const Card &card); // The previous card values just get deleted. In my
@@ -137,7 +137,6 @@ public:
   // search is not directly needed but it eases
   // the job for classes that use it
   std::expected<CardPosition, Error> search(const CardCode &code);
-
   std::expected<bool, Error> isSetLegal(const CardPosition &pos,
                                         const Card &card);
 
@@ -145,9 +144,10 @@ private:
   ft::Component placeholder(size_t index);
 
 private:
-  std::array<std::optional<Card>, 4> foundations_;
+  std::array<Cards, 4> foundations_;
   ft::Component component_;
   MoveManager &moveManager_;
+  std::function<void()> onGameWon_;
 };
 
 class ExitButton {
@@ -161,7 +161,7 @@ typedef std::variant<Tableau::CardPosition, Tableau::AppendCardPosition,
 
 class Board {
 public:
-  Board(Difficulty mode);
+  Board(Difficulty mode, std::function<void()> onGameWon);
   // non-copyable
   Board(const Board &) = delete;
   Board &operator=(const Board &) = delete;

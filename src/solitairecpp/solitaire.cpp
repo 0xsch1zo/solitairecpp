@@ -58,11 +58,12 @@ std::expected<void, Error> Game::chooseModeScreen() {
               menu,
               [=, this] {
                 return ft::vbox(
-                    utils::text_split(splash_) | ft::color(splash_gradient_),
-                    ft::separator() | ft::color(splash_gradient_),
+                    utils::textSplit(splash_) |
+                        ft::color(utils::headerGradient),
+                    ft::separator() | ft::color(utils::headerGradient),
                     ft::text("Please choose the difficulty") | ft::hcenter,
                     menu->Render() | ft::hcenter,
-                    ft::separator() | ft::color(splash_gradient_));
+                    ft::separator() | ft::color(utils::headerGradient));
               }),
       }) |
       ft::CatchEvent([&](ft::Event event) {
@@ -84,8 +85,48 @@ std::expected<void, Error> Game::chooseModeScreen() {
 
 void Game::mainLoop() {
   auto screen = ft::ScreenInteractive::Fullscreen();
-  Board board(mode_);
-  auto boardComponent = board.component();
+  bool won = true;
+  Board board(mode_, [&] { won = true; });
+  ft::ButtonOption winScreenButtonOpt = {
+      .transform = [](const ft::EntryState &state) {
+        auto element =
+            ft::text(state.label) | ft::color(ft::Color::White) | ft::border;
+
+        if (state.focused)
+          element |= ft::color(ft::Color::Blue);
+
+        return element;
+      }};
+  auto winScreen = ft::Container::Vertical(
+      {ft::Renderer([] {
+         return ft::vbox(utils::textSplit(winSplash_)) |
+                ft::color(utils::headerGradient);
+       }),
+       ft::Container::Horizontal({ft::Button(
+                                      "Play again",
+                                      [&] {
+                                        screen.Exit();
+                                        auto success = chooseModeScreen();
+                                        if (!success)
+                                          return;
+                                        mainLoop();
+                                      },
+                                      winScreenButtonOpt),
+                                  ft::Button("Exit", screen.ExitLoopClosure(),
+                                             winScreenButtonOpt)})});
+
+  auto boardComponent =
+      board.component() |
+      ft::Modal(ft::Renderer(winScreen,
+                             [=] {
+                               return ft::vbox(winScreen->ChildAt(0)->Render(),
+                                               winScreen->ChildAt(1)->Render() |
+                                                   ft::hcenter) |
+                                      ft::color(ft::Color::White) | ft::border |
+                                      ft::color(utils::headerGradient) |
+                                      ft::center;
+                             }),
+                &won);
   screen.Loop(boardComponent);
 }
 
