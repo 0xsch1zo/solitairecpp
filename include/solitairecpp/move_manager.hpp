@@ -23,6 +23,7 @@ public:
   bool isMoveTarget(const CardPosition &pos) const;
   bool isTargetError(const CardPosition &pos) const;
   bool moveTransactionOpen() const;
+  size_t moveCount() const;
 
   void rollback();
 
@@ -52,6 +53,7 @@ private:
       moveFrom_; // only when move sequence is initiated
   std::atomic<std::optional<CardPosition>> moveTo_;
   std::atomic<std::optional<CardPosition>> erroneusTarget_;
+  std::atomic<size_t> moveCount_{};
 };
 
 } // namespace solitairecpp

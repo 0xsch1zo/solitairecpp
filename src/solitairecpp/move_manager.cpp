@@ -88,6 +88,7 @@ std::expected<void, Error> MoveManager::Move() {
 
   // if (history_.size() < maxHistorySize_)
   //  history_.emplace_back(from, to);
+  moveCount_++;
   endTransaction();
   return std::expected<void, Error>();
 }
@@ -234,5 +235,7 @@ void MoveManager::endTransaction() {
   moveFrom_ = std::nullopt;
   moveTo_ = std::nullopt;
 }
+
+size_t MoveManager::moveCount() const { return moveCount_; }
 
 } // namespace solitairecpp

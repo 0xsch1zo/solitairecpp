@@ -8,7 +8,7 @@
 
 namespace solitairecpp {
 
-Game::Game() {
+void Game::Start() {
   auto success = chooseModeScreen();
   if (!success)
     return;
@@ -85,8 +85,23 @@ std::expected<void, Error> Game::chooseModeScreen() {
 
 void Game::mainLoop() {
   auto screen = ft::ScreenInteractive::Fullscreen();
-  bool won = true;
-  Board board(mode_, [&] { won = true; });
+  bool won = false;
+  Board::GameCallbacks callbacks = {
+      .onGameWon = [&] { won = true; },
+      .restartGame =
+          [&] {
+            screen.Exit();
+            Start();
+          },
+      .viewLeadearBoard =
+          [&] {
+            auto screen = ft::ScreenInteractive::Fullscreen(); // nested screen
+            auto leaderboardComponent = leaderboard_.component();
+            screen.Loop(ft::Renderer(leaderboardComponent, [=] {
+              return leaderboardComponent->Render() | ft::center;
+            }));
+          }};
+  Board board(mode_, callbacks);
   ft::ButtonOption winScreenButtonOpt = {
       .transform = [](const ft::EntryState &state) {
         auto element =
@@ -106,10 +121,9 @@ void Game::mainLoop() {
                                       "Play again",
                                       [&] {
                                         screen.Exit();
-                                        auto success = chooseModeScreen();
-                                        if (!success)
-                                          return;
-                                        mainLoop();
+                                        leaderboard_.registerScore(
+                                            board.moveCount());
+                                        Start();
                                       },
                                       winScreenButtonOpt),
                                   ft::Button("Exit", screen.ExitLoopClosure(),
@@ -127,7 +141,7 @@ void Game::mainLoop() {
                                       ft::center;
                              }),
                 &won);
-  screen.Loop(boardComponent);
+  screen.Loop(boardComponent | utils::exitListener());
 }
 
 } // namespace solitairecpp

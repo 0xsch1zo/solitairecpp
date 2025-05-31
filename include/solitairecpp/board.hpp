@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ftxui/component/component_base.hpp>
+#include <functional>
 #include <solitairecpp/cards.hpp>
 #include <utility>
 
@@ -161,7 +162,14 @@ typedef std::variant<Tableau::CardPosition, Tableau::AppendCardPosition,
 
 class Board {
 public:
-  Board(Difficulty mode, std::function<void()> onGameWon);
+  struct GameCallbacks {
+    std::function<void()> onGameWon;
+    std::function<void()> restartGame;
+    std::function<void()> viewLeadearBoard;
+  };
+
+public:
+  Board(Difficulty mode, GameCallbacks callbacks);
   // non-copyable
   Board(const Board &) = delete;
   Board &operator=(const Board &) = delete;
@@ -174,11 +182,14 @@ public:
   Tableau &tableau() const;
   Foundations &foundations() const;
 
+  size_t moveCount() const;
+
 private:
   std::unique_ptr<Tableau> tableau_ = nullptr;
   std::unique_ptr<ReserveStack> reserveStack_ = nullptr;
   std::unique_ptr<Foundations> foundations_ = nullptr;
   std::unique_ptr<MoveManager> moveManager_;
+  GameCallbacks gameCallbacks_;
 };
 
 } // namespace solitairecpp

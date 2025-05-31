@@ -1,5 +1,6 @@
 #pragma once
 
+#include "solitairecpp/leaderboard.hpp"
 #include <solitairecpp/board.hpp>
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/error.hpp>
@@ -16,7 +17,8 @@ public:
 
 class Game {
 public:
-  Game();
+  Game() = default;
+  void Start();
 
 private:
   std::expected<void, Error> chooseModeScreen();
@@ -41,6 +43,7 @@ __  __               _       __            __
 )";
 
   Difficulty mode_{};
+  Leaderboard leaderboard_{};
 };
 
 } // namespace solitairecpp

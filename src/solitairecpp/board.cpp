@@ -348,8 +348,9 @@ ft::Component ExitButton::component() {
   });
 }
 
-Board::Board(Difficulty mode, std::function<void()> onGameWon)
-    : moveManager_{std::make_unique<MoveManager>(*this)} {
+Board::Board(Difficulty mode, GameCallbacks callbacks)
+    : moveManager_{std::make_unique<MoveManager>(*this)},
+      gameCallbacks_{callbacks} {
   Cards deck = buildDeck();
 
   Tableau::StartCards tabelauCards =
@@ -371,16 +372,26 @@ Board::Board(Difficulty mode, std::function<void()> onGameWon)
 }
 
 ft::Component Board::component() const {
-  auto sidepanel = ft::Container::Vertical({foundations_->component(),
-                                            reserveStack_->component(),
-                                            ExitButton::component()});
+  auto moveCounter = ft::Renderer([&] {
+    return ft::text("Move count: " + std::to_string(moveManager_->moveCount()));
+  });
+  auto sidepanel = ft::Container::Vertical(
+      {foundations_->component(), reserveStack_->component(), moveCounter,
+       ft::Button("View leaderboard", gameCallbacks_.viewLeadearBoard,
+                  ft::ButtonOption::Border()),
+       ft::Button("Restart game", gameCallbacks_.restartGame,
+                  ft::ButtonOption::Border()),
+       ExitButton::component()});
   auto tableau = tableau_->component();
 
   auto board = ft::Container::Horizontal({sidepanel, tableau});
   return ft::Container::Horizontal({ft::Renderer(board, [=] {
     return ft::hbox(ft::vbox(sidepanel->ChildAt(0)->Render(), ft::separator(),
                              sidepanel->ChildAt(1)->Render(), ft::separator(),
-                             ft::filler(), sidepanel->ChildAt(2)->Render()),
+                             ft::filler(), sidepanel->ChildAt(2)->Render(),
+                             sidepanel->ChildAt(3)->Render(),
+                             sidepanel->ChildAt(4)->Render(),
+                             sidepanel->ChildAt(5)->Render()),
                     ft::separator(), ft::filler(), tableau->Render());
   })});
 }
@@ -428,5 +439,7 @@ Tableau &Board::tableau() const { return *tableau_; }
 ReserveStack &Board::reserveStack() const { return *reserveStack_; }
 
 Foundations &Board::foundations() const { return *foundations_; }
+
+size_t Board::moveCount() const { return moveManager_->moveCount(); }
 
 } // namespace solitairecpp
