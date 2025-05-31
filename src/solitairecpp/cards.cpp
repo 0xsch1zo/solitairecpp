@@ -79,6 +79,8 @@ Card &Card::operator=(const Card &other) {
 
 void Card::show() { *hidden_ = false; }
 
+void Card::hide() { *hidden_ = true; }
+
 ft::Component Card::component() const { return std::move(component_); }
 
 CardCode Card::code() const { return {.value = value_, .type = type_}; }
@@ -163,32 +165,30 @@ bool CardRow::isAppendLegal(const Cards &tobeappended) {
   return true; // finally
 }
 
+void CardRow::appendCore(const Cards &cards) {
+  if (cards_.size() == 0 && cardsComponent_->ChildCount() == 1)
+    cardsComponent_->DetachAllChildren(); // remove dummy
+
+  cards_.reserve(cards.size());
+  for (const auto &card : cards) {
+    cards_.emplace_back(card);
+    cardsComponent_->Add(card.component());
+  }
+}
+
 std::expected<void, Error> CardRow::append(const Cards &cards) {
   if (!isAppendLegal(cards))
     return std::unexpected(ErrorIllegalMove().error());
 
-  if (cards_.size() == 0 && cardsComponent_->ChildCount() == 1)
-    cardsComponent_->DetachAllChildren(); // remove dummy
-
-  cards_.reserve(cards.size());
-  for (const auto &card : cards) {
-    cards_.emplace_back(card);
-    cardsComponent_->Add(card.component());
-  }
+  appendCore(cards);
   return std::expected<void, Error>();
 }
 
-// needed for certain operations like rollback or init. I'm aware of the
-// duplication it's on purpose
-void CardRow::illegalAppend(const Cards &cards) {
-  if (cards_.size() == 0 && cardsComponent_->ChildCount() == 1)
-    cardsComponent_->DetachAllChildren(); // remove dummy
+void CardRow::appendRollback(const Cards &cards) {
+  if (!cards_.empty())
+    cards_.back().hide(); // Hide the previous one
 
-  cards_.reserve(cards.size());
-  for (const auto &card : cards) {
-    cards_.emplace_back(card);
-    cardsComponent_->Add(card.component());
-  }
+  appendCore(cards);
 }
 
 std::expected<void, Error> CardRow::deleteFrom(const CardPosition &pos) {
@@ -218,8 +218,10 @@ ft::Component CardRow::component() const {
            [*this] {
              if (!moveManager_.moveTransactionOpen())
                return;
-             moveManager_.setMoveTarget(
-                 Tableau::AppendCardPosition{.cardRowIndex = index_});
+             moveManager_.setMoveTarget(Tableau::CardPosition{
+                 .cardRowIndex = index_,
+                 .cardIndex = cards_.size()}); // will point to the card that's
+                                               // about to beadded
            },
        .transform =
            [*this](const ft::EntryState &state) {
@@ -234,8 +236,8 @@ ft::Component CardRow::component() const {
              if (state.focused)
                element |= ft::inverted;
 
-             if (moveManager_.isTargetError(
-                     Tableau::AppendCardPosition{.cardRowIndex = index_}))
+             if (moveManager_.isTargetError(Tableau::CardPosition{
+                     .cardRowIndex = index_, .cardIndex = cards_.size()}))
                element |= ft::color(ft::Color::Red);
 
              return element | ft::color(ft::Color::Green);

@@ -73,11 +73,11 @@ public:
   std::expected<CardPosition, Error> search(const CardCode &code) const;
   std::expected<void, Error> appendTo(const AppendCardPosition &pos,
                                       const Cards &cards);
+  std::expected<void, Error> appendToRollback(const AppendCardPosition &pos,
+                                              const Cards &cards);
   std::expected<void, Error> deleteFrom(const CardPosition &pos);
   std::expected<Cards, Error> getCardsFrom(const CardPosition &pos);
 
-  std::expected<void, Error> illegalAppendTo(const AppendCardPosition &pos,
-                                             const Cards &cards);
   std::expected<bool, Error> isAppendToLegal(const AppendCardPosition &pos,
                                              const Cards &cards);
 
@@ -129,10 +129,9 @@ public:
 
 public:
   Foundations(MoveManager &moveManager, std::function<void()> onGameWon);
-  std::expected<void, Error>
-  set(const CardPosition &pos,
-      const Card &card); // The previous card values just get deleted. In my
-                         // vision that's what shoud happen.
+  std::expected<Card, Error> acquireCard(const CardPosition &pos);
+  std::expected<void, Error> deleteCard(const CardPosition &pos);
+  std::expected<void, Error> setCard(const CardPosition &pos, const Card &card);
   ft::Component component();
 
   // search is not directly needed but it eases
@@ -156,8 +155,9 @@ public:
   static ft::Component component();
 };
 
-typedef std::variant<Tableau::CardPosition, Tableau::AppendCardPosition,
-                     ReserveStack::CardPosition, Foundations::CardPosition>
+// Abstraction(kind of) over card positions for move manager
+typedef std::variant<Tableau::CardPosition, ReserveStack::CardPosition,
+                     Foundations::CardPosition>
     CardPosition;
 
 class Board {

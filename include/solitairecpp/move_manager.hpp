@@ -24,6 +24,7 @@ public:
   bool isMoveTarget(const CardPosition &pos) const;
   bool isTargetError(const CardPosition &pos) const;
   bool moveTransactionOpen() const;
+  bool isRollbackBlocked() const;
   size_t moveCount() const;
 
   void rollback();
@@ -37,14 +38,25 @@ private:
 
 private:
   std::expected<void, Error> Move();
+  // Each overload describes a posssible origin and destination
   std::expected<void, Error> moveHelper(const Tableau::CardPosition &from,
-                                        const Tableau::AppendCardPosition &to);
+                                        const Tableau::CardPosition &to);
   std::expected<void, Error> moveHelper(const Tableau::CardPosition &from,
                                         const Foundations::CardPosition &to);
   std::expected<void, Error> moveHelper(const ReserveStack::CardPosition &from,
-                                        const Tableau::AppendCardPosition &to);
+                                        const Tableau::CardPosition &to);
   std::expected<void, Error> moveHelper(const ReserveStack::CardPosition &from,
                                         const Foundations::CardPosition &to);
+
+  // Yes the equivalents for rollbacks are needed and aren't just repetition
+  void rollbackHelper(const Tableau::CardPosition &from,
+                      const Tableau::CardPosition &to);
+  void rollbackHelper(const Foundations::CardPosition &from,
+                      const Tableau::CardPosition &to);
+  void rollbackHelper(const Tableau::CardPosition &from,
+                      const ReserveStack::CardPosition &to);
+  void rollbackHelper(const Foundations::CardPosition &from,
+                      const ReserveStack::CardPosition &to);
   void endTransaction();
 
 private:

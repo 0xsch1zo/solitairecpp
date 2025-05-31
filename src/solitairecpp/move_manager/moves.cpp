@@ -15,23 +15,14 @@ namespace solitairecpp {
 
 MoveManager::MoveManager(const Board &elements) : board_{elements} {}
 
-void MoveManager::rollback() {
-  /*(auto transaction = history_.back();
-  if (std::holds_alternative<Tableau::CardPosition>(transaction.from) &&
-      std::holds_alternative<Tableau::AppendCardPosition>(transaction.to)) {
-    board_.tableau().
-  }*/
-}
-
 bool MoveManager::isTargetError(const CardPosition &pos) const {
   if (!erroneusTarget_.load().has_value())
     return false;
-  if (std::holds_alternative<Tableau::AppendCardPosition>(pos) &&
-      std::holds_alternative<Tableau::AppendCardPosition>(
+  if (std::holds_alternative<Tableau::CardPosition>(pos) &&
+      std::holds_alternative<Tableau::CardPosition>(
           erroneusTarget_.load().value())) {
-    return std::get<Tableau::AppendCardPosition>(pos) ==
-           std::get<Tableau::AppendCardPosition>(
-               erroneusTarget_.load().value());
+    return std::get<Tableau::CardPosition>(pos) ==
+           std::get<Tableau::CardPosition>(erroneusTarget_.load().value());
   }
 
   return false;
@@ -41,6 +32,7 @@ bool MoveManager::moveTransactionOpen() const {
   return moveFrom_.load() != std::nullopt;
 }
 
+// this one couldn't be any smaller
 std::expected<void, Error> MoveManager::Move() {
   if (!moveFrom_.load().has_value() || !moveTo_.load().has_value()) {
     endTransaction();
@@ -51,9 +43,9 @@ std::expected<void, Error> MoveManager::Move() {
   const auto to = moveTo_.load().value();
 
   if (std::holds_alternative<Tableau::CardPosition>(from) &&
-      std::holds_alternative<Tableau::AppendCardPosition>(to)) {
+      std::holds_alternative<Tableau::CardPosition>(to)) {
     auto success = moveHelper(std::get<Tableau::CardPosition>(from),
-                              std::get<Tableau::AppendCardPosition>(to));
+                              std::get<Tableau::CardPosition>(to));
     if (!success) {
       endTransaction();
       return std::unexpected(success.error());
@@ -67,9 +59,9 @@ std::expected<void, Error> MoveManager::Move() {
       return std::unexpected(success.error());
     }
   } else if (std::holds_alternative<ReserveStack::CardPosition>(from) &&
-             std::holds_alternative<Tableau::AppendCardPosition>(to)) {
+             std::holds_alternative<Tableau::CardPosition>(to)) {
     auto success = moveHelper(std::get<ReserveStack::CardPosition>(from),
-                              std::get<Tableau::AppendCardPosition>(to));
+                              std::get<Tableau::CardPosition>(to));
     if (!success) {
       endTransaction();
       return std::unexpected(success.error());
@@ -87,8 +79,9 @@ std::expected<void, Error> MoveManager::Move() {
     return std::unexpected(ErrorIllegalMove().error());
   }
 
-  // if (history_.size() < maxHistorySize_)
-  //  history_.emplace_back(from, to);
+  if (history_.size() == maxHistorySize_)
+    history_.erase(history_.begin());
+  history_.emplace_back(from, to);
   moveCount_++;
   endTransaction();
   return std::expected<void, Error>();
@@ -96,12 +89,13 @@ std::expected<void, Error> MoveManager::Move() {
 
 std::expected<void, Error>
 MoveManager::moveHelper(const Tableau::CardPosition &from,
-                        const Tableau::AppendCardPosition &to) {
+                        const Tableau::CardPosition &to) {
   auto cards = board_.tableau().getCardsFrom(from);
   if (!cards)
     throw std::runtime_error(cards.error()->what());
 
-  auto legalSuccess = board_.tableau().isAppendToLegal(to, cards.value());
+  auto legalSuccess =
+      board_.tableau().isAppendToLegal({to.cardRowIndex}, cards.value());
   if (!legalSuccess)
     throw std::runtime_error(legalSuccess.error()->what());
 
@@ -112,7 +106,8 @@ MoveManager::moveHelper(const Tableau::CardPosition &from,
   if (!deleteSuccess)
     throw std::runtime_error(deleteSuccess.error()->what());
 
-  auto appendSuccess = board_.tableau().appendTo(to, cards.value());
+  auto appendSuccess =
+      board_.tableau().appendTo({to.cardRowIndex}, cards.value());
   if (!appendSuccess)
     throw std::runtime_error(appendSuccess.error()->what());
 
@@ -132,7 +127,7 @@ MoveManager::moveHelper(const Tableau::CardPosition &from,
 
   auto legalSuccess = board_.foundations().isSetLegal(to, card.value().at(0));
   if (!legalSuccess)
-    throw std::runtime_error(card.error()->what());
+    throw std::runtime_error(legalSuccess.error()->what());
   if (!legalSuccess.value())
     return std::unexpected(ErrorIllegalMove().error());
 
@@ -140,7 +135,7 @@ MoveManager::moveHelper(const Tableau::CardPosition &from,
   if (!deleteSuccess)
     throw std::runtime_error(deleteSuccess.error()->what());
 
-  auto appendSuccess = board_.foundations().set(to, card.value().at(0));
+  auto appendSuccess = board_.foundations().setCard(to, card.value().at(0));
   if (!appendSuccess)
     throw std::runtime_error(appendSuccess.error()->what());
 
@@ -149,14 +144,15 @@ MoveManager::moveHelper(const Tableau::CardPosition &from,
 
 std::expected<void, Error>
 MoveManager::moveHelper(const ReserveStack::CardPosition &from,
-                        const Tableau::AppendCardPosition &to) {
+                        const Tableau::CardPosition &to) {
   auto card = board_.reserveStack().getTopCard();
   if (!card)
     throw std::runtime_error(card.error()->what());
 
-  auto legalSuccess = board_.tableau().isAppendToLegal(to, {card.value()});
+  auto legalSuccess =
+      board_.tableau().isAppendToLegal({to.cardRowIndex}, {card.value()});
   if (!legalSuccess)
-    throw std::runtime_error(card.error()->what());
+    throw std::runtime_error(legalSuccess.error()->what());
 
   if (!legalSuccess.value())
     return std::unexpected(ErrorIllegalMove().error());
@@ -165,10 +161,10 @@ MoveManager::moveHelper(const ReserveStack::CardPosition &from,
   if (!deleteSuccess)
     throw std::runtime_error(deleteSuccess.error()->what());
 
-  auto appendSuccess = board_.tableau().appendTo(to, {card.value()});
-  if (!appendSuccess) {
+  auto appendSuccess =
+      board_.tableau().appendTo({to.cardRowIndex}, {card.value()});
+  if (!appendSuccess)
     throw std::runtime_error(appendSuccess.error()->what());
-  }
 
   return std::expected<void, Error>();
 }
@@ -182,7 +178,7 @@ MoveManager::moveHelper(const ReserveStack::CardPosition &from,
 
   auto legalSuccess = board_.foundations().isSetLegal(to, {card.value()});
   if (!legalSuccess)
-    throw std::runtime_error(card.error()->what());
+    throw std::runtime_error(legalSuccess.error()->what());
 
   if (!legalSuccess.value())
     return std::unexpected(ErrorIllegalMove().error());
@@ -191,7 +187,7 @@ MoveManager::moveHelper(const ReserveStack::CardPosition &from,
   if (!deleteSuccess)
     throw std::runtime_error(deleteSuccess.error()->what());
 
-  auto appendSuccess = board_.foundations().set(to, {card.value()});
+  auto appendSuccess = board_.foundations().setCard(to, {card.value()});
   if (!appendSuccess) {
     throw std::runtime_error(appendSuccess.error()->what());
   }

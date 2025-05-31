@@ -13,7 +13,7 @@ cmake . -B build
 cd build
 make -j
 ```
-## RTFM - The friendly manual
+## The friendly manual
 The interface should be straight forward there are butttons for most of actions. But there remain some that are keybinds.
 <ul>
 <li>Press Q or Ctrl+C anywhere to exit the current screen</li>

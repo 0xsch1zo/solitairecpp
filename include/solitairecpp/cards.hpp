@@ -86,6 +86,7 @@ public:
   Card &operator=(const Card &other);
 
   void show();
+  void hide();
   CardCode code() const;
   virtual ft::Component component() const;
   CardColor color() const;
@@ -125,12 +126,15 @@ public:
   CardRow(size_t index, MoveManager &moveManager);
   ft::Component component() const;
   std::expected<void, Error> append(const Cards &cards);
+  void appendRollback(const Cards &cards);
+  void appendCore(const Cards &cards); // Used by normal append, appendRollback
+                                       // and init this interface will get
+                                       // encapsulated by tableau
   std::expected<void, Error> deleteFrom(const CardPosition &pos);
   std::expected<Cards, Error> getCardsFrom(const CardPosition &pos);
   std::expected<CardPosition, Error> search(const CardCode &code) const;
 
   bool isAppendLegal(const Cards &cards);
-  void illegalAppend(const Cards &cards);
 
 private:
   ft::Component cardsComponent_;

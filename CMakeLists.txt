@@ -16,8 +16,12 @@ add_executable(solitairecpp
     ./src/main.cpp
     ./src/solitairecpp/solitaire.cpp
     ./src/solitairecpp/cards.cpp
-    ./src/solitairecpp/board.cpp
-    ./src/solitairecpp/move_manager.cpp
+    ./src/solitairecpp/board/board.cpp
+    ./src/solitairecpp/board/tableau.cpp
+    ./src/solitairecpp/board/reserve_stack.cpp
+    ./src/solitairecpp/board/foundations.cpp
+    ./src/solitairecpp/move_manager/moves.cpp
+    ./src/solitairecpp/move_manager/rollback.cpp
     ./src/solitairecpp/leaderboard.cpp
     ./src/solitairecpp/utils.cpp
 )
