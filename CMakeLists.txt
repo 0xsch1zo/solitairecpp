@@ -18,6 +18,7 @@ add_executable(solitairecpp
     ./src/solitairecpp/cards.cpp
     ./src/solitairecpp/board.cpp
     ./src/solitairecpp/move_manager.cpp
+    ./src/solitairecpp/utils.cpp
 )
 
 target_include_directories(solitairecpp

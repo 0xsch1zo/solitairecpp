@@ -338,7 +338,8 @@ ft::Component ExitButton::component() {
   });
 }
 
-Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
+Board::Board(Difficulty mode)
+    : moveManager_{std::make_unique<MoveManager>(*this)} {
   Cards deck = buildDeck();
 
   Tableau::StartCards tabelauCards =
@@ -356,10 +357,7 @@ Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
       [&]<std::size_t... Is>(std::index_sequence<Is...>) {
         return ReserveStack::StartCards{{deck.at(Is)...}};
       }(std::make_index_sequence<ReserveStack::startCardsSize>{});
-  reserveStack_ =
-      std::make_unique<ReserveStack>(Difficulty::Easy, reserveStackCards);
-
-  foundations_ = std::make_unique<Foundations>(*moveManager_);
+  reserveStack_ = std::make_unique<ReserveStack>(mode, reserveStackCards);
 }
 
 ft::Component Board::component() const {

@@ -1,7 +1,14 @@
 #pragma once
 
-template <class... Ts> struct overload : Ts... {
-  using Ts::operator()...;
+#include <ftxui/dom/elements.hpp>
+#include <string>
+
+namespace ft = ftxui;
+
+namespace solitairecpp {
+class utils {
+public:
+  static ft::Elements text_split(const std::string &text);
 };
 
-template <class... Ts> overload(Ts...) -> overload<Ts...>;
+} // namespace solitairecpp

@@ -161,7 +161,7 @@ typedef std::variant<Tableau::CardPosition, Tableau::AppendCardPosition,
 
 class Board {
 public:
-  Board();
+  Board(Difficulty mode);
   // non-copyable
   Board(const Board &) = delete;
   Board &operator=(const Board &) = delete;
