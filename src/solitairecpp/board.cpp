@@ -385,15 +385,19 @@ ft::Component Board::component() const {
   auto tableau = tableau_->component();
 
   auto board = ft::Container::Horizontal({sidepanel, tableau});
-  return ft::Container::Horizontal({ft::Renderer(board, [=] {
-    return ft::hbox(ft::vbox(sidepanel->ChildAt(0)->Render(), ft::separator(),
-                             sidepanel->ChildAt(1)->Render(), ft::separator(),
-                             ft::filler(), sidepanel->ChildAt(2)->Render(),
-                             sidepanel->ChildAt(3)->Render(),
-                             sidepanel->ChildAt(4)->Render(),
-                             sidepanel->ChildAt(5)->Render()),
-                    ft::separator(), ft::filler(), tableau->Render());
-  })});
+  return ft::Container::Horizontal({ft::Renderer(
+             board,
+             [=] {
+               return ft::hbox(
+                   ft::vbox(sidepanel->ChildAt(0)->Render(), ft::separator(),
+                            sidepanel->ChildAt(1)->Render(), ft::separator(),
+                            ft::filler(), sidepanel->ChildAt(2)->Render(),
+                            sidepanel->ChildAt(3)->Render(),
+                            sidepanel->ChildAt(4)->Render(),
+                            sidepanel->ChildAt(5)->Render()),
+                   ft::separator(), ft::filler(), tableau->Render());
+             })}) |
+         moveManager_->moveTransactionCanceledListener();
 }
 
 Cards Board::buildDeck() {

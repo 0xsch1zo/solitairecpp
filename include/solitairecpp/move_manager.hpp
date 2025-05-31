@@ -1,4 +1,5 @@
 #include <atomic>
+#include <ftxui/component/component.hpp>
 #include <solitairecpp/board.hpp>
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/error.hpp>
@@ -26,6 +27,7 @@ public:
   size_t moveCount() const;
 
   void rollback();
+  ft::ComponentDecorator moveTransactionCanceledListener();
 
 private:
   struct moveTransaction {

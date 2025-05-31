@@ -1,5 +1,6 @@
 #include "solitairecpp/error.hpp"
 #include <expected>
+#include <ftxui/component/component.hpp>
 #include <ftxui/component/event.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 #include <optional>
@@ -237,5 +238,15 @@ void MoveManager::endTransaction() {
 }
 
 size_t MoveManager::moveCount() const { return moveCount_; }
+
+ft::ComponentDecorator MoveManager::moveTransactionCanceledListener() {
+  return ft::CatchEvent([&](ft::Event event) {
+    if (moveTransactionOpen() && event == ft::Event::Escape) {
+      endTransaction();
+      return true;
+    }
+    return false;
+  });
+}
 
 } // namespace solitairecpp
