@@ -358,6 +358,8 @@ Board::Board() : moveManager_{std::make_unique<MoveManager>(*this)} {
       }(std::make_index_sequence<ReserveStack::startCardsSize>{});
   reserveStack_ =
       std::make_unique<ReserveStack>(Difficulty::Easy, reserveStackCards);
+
+  foundations_ = std::make_unique<Foundations>(*moveManager_);
 }
 
 ft::Component Board::component() const {
@@ -378,13 +380,14 @@ ft::Component Board::component() const {
 Cards Board::buildDeck() {
   const auto deckSize = 52;
   Cards deck;
+  ArtGenerator generator;
   deck.reserve(deckSize);
   for (size_t i{}; i < static_cast<size_t>(CardValue::Count); i++) {
     for (size_t j{}; j < static_cast<size_t>(CardType::Count); j++) {
       auto value = static_cast<CardValue>(i);
       auto type = static_cast<CardType>(j);
       deck.emplace_back(*moveManager_, value, type,
-                        "test " + std::to_string(i) + " " + std::to_string(j));
+                        generator.generate(value, type));
     }
   }
 

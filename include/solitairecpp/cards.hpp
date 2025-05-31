@@ -90,11 +90,8 @@ public:
   virtual ft::Component component() const;
   CardColor color() const;
 
-  // Tempororary remove at release
-  std::string getArt() const { return art_; }
-
   static inline const auto cardWidth = ft::size(ft::WIDTH, ft::EQUAL, 15);
-  static inline const auto cardHeight = ft::size(ft::HEIGHT, ft::EQUAL, 4);
+  static inline const auto cardHeight = ft::size(ft::HEIGHT, ft::EQUAL, 3);
 
 protected:
   ft::Component component_;
@@ -140,6 +137,30 @@ private:
   Cards cards_;
   size_t index_;
   MoveManager &moveManager_;
+};
+
+class ArtGenerator {
+public:
+  ArtGenerator() = default;
+  std::string generate(CardValue value, CardType type);
+
+private:
+  // Reflection is coming in c++26 so this is necessary for now
+  const std::unordered_map<CardValue, std::string> valueStr{
+      {CardValue::Ace, "Ace"},   {CardValue::Two, "2"},
+      {CardValue::Three, "3"},   {CardValue::Four, "4"},
+      {CardValue::Five, "5"},    {CardValue::Six, "6"},
+      {CardValue::Seven, "7"},   {CardValue::Eight, "8"},
+      {CardValue::Nine, "9"},    {CardValue::Ten, "10"},
+      {CardValue::Jack, "Jack"}, {CardValue::Queen, "Queen"},
+      {CardValue::King, "King"}, {CardValue::Count, "Invalid"},
+  };
+
+  const std::unordered_map<CardType, std::string> typeStr{
+      {CardType::Hearts, "♥ "},     {CardType::Diamonds, "♦ "},
+      {CardType::Spades, "♠ "},     {CardType::Clubs, "♣ "},
+      {CardType::Count, "Invalid"},
+  };
 };
 
 } // namespace solitairecpp

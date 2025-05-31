@@ -40,6 +40,8 @@ private:
                                         const Foundations::CardPosition &to);
   std::expected<void, Error> moveHelper(const ReserveStack::CardPosition &from,
                                         const Tableau::AppendCardPosition &to);
+  std::expected<void, Error> moveHelper(const ReserveStack::CardPosition &from,
+                                        const Foundations::CardPosition &to);
   void endTransaction();
 
 private:

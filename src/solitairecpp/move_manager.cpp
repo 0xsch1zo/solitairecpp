@@ -73,6 +73,14 @@ std::expected<void, Error> MoveManager::Move() {
       endTransaction();
       return std::unexpected(success.error());
     }
+  } else if (std::holds_alternative<ReserveStack::CardPosition>(from) &&
+             std::holds_alternative<Foundations::CardPosition>(to)) {
+    auto success = moveHelper(std::get<ReserveStack::CardPosition>(from),
+                              std::get<Foundations::CardPosition>(to));
+    if (!success) {
+      endTransaction();
+      return std::unexpected(success.error());
+    }
   } else {
     endTransaction();
     return std::unexpected(ErrorIllegalMove().error());
@@ -130,8 +138,7 @@ MoveManager::moveHelper(const Tableau::CardPosition &from,
   if (!deleteSuccess)
     throw std::runtime_error(deleteSuccess.error()->what());
 
-  auto appendSuccess = board_.foundations().set(
-      {.foundationIndex = to.foundationIndex}, card.value().at(0));
+  auto appendSuccess = board_.foundations().set(to, card.value().at(0));
   if (!appendSuccess)
     throw std::runtime_error(appendSuccess.error()->what());
 
@@ -156,12 +163,36 @@ MoveManager::moveHelper(const ReserveStack::CardPosition &from,
   if (!deleteSuccess)
     throw std::runtime_error(deleteSuccess.error()->what());
 
-  auto appendSuccess = board_.tableau().appendTo(
-      {.cardRowIndex = to.cardRowIndex}, {card.value()});
-  if (!appendSuccess) { // rollback on error
+  auto appendSuccess = board_.tableau().appendTo(to, {card.value()});
+  if (!appendSuccess) {
     throw std::runtime_error(appendSuccess.error()->what());
   }
 
+  return std::expected<void, Error>();
+}
+
+std::expected<void, Error>
+MoveManager::moveHelper(const ReserveStack::CardPosition &from,
+                        const Foundations::CardPosition &to) {
+  auto card = board_.reserveStack().getTopCard();
+  if (!card)
+    throw std::runtime_error(card.error()->what());
+
+  auto legalSuccess = board_.foundations().isSetLegal(to, {card.value()});
+  if (!legalSuccess)
+    throw std::runtime_error(card.error()->what());
+
+  if (!legalSuccess.value())
+    return std::unexpected(ErrorIllegalMove().error());
+
+  auto deleteSuccess = board_.reserveStack().deleteTopCard();
+  if (!deleteSuccess)
+    throw std::runtime_error(deleteSuccess.error()->what());
+
+  auto appendSuccess = board_.foundations().set(to, {card.value()});
+  if (!appendSuccess) {
+    throw std::runtime_error(appendSuccess.error()->what());
+  }
   return std::expected<void, Error>();
 }
 

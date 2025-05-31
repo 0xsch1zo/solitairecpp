@@ -5,6 +5,7 @@
 #include <solitairecpp/cards.hpp>
 #include <solitairecpp/error.hpp>
 #include <solitairecpp/move_manager.hpp>
+#include <unordered_map>
 
 namespace solitairecpp {
 
@@ -93,7 +94,7 @@ FoundationCard::FoundationCard(const Card &card) : Card(card) {
                                },
                            .transform =
                                [=, *this](const ft::EntryState state) {
-                                 auto element = ft::text(art_);
+                                 auto element = ft::text(art_) | ft::center;
                                  element |= cardWidth | cardHeight;
                                  element |= ft::border;
 
@@ -259,6 +260,10 @@ std::expected<Cards, Error> CardRow::getCardsFrom(const CardPosition &pos) {
 
   Cards res(cards_.begin() + pos.cardIndex, cards_.end());
   return res;
+}
+
+std::string ArtGenerator::generate(CardValue value, CardType type) {
+  return valueStr.at(value) + " " + typeStr.at(type);
 }
 
 } // namespace solitairecpp
