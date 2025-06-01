@@ -156,7 +156,6 @@ MoveManager::moveHelper(const ReserveStack::CardPosition &from,
       board_.tableau().isAppendToLegal({to.cardRowIndex}, {card.value()});
   if (!legalSuccess)
     throw std::runtime_error(legalSuccess.error()->what());
-
   if (!legalSuccess.value())
     return std::unexpected(ErrorIllegalMove().error());
 

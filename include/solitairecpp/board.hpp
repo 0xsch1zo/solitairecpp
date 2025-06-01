@@ -111,6 +111,16 @@ public:
   std::expected<void, Error> rollbackCard();
 
 private:
+  class ReserveStackCard : public Card {
+  public:
+    ReserveStackCard(const Card &card, const ReserveStack &reserveStack);
+    ft::Component component() const override;
+
+  private:
+    const ReserveStack &reserveStack_;
+  };
+
+private:
   void moveToHiddenAndShuffle();
   ft::Component placeholder();
   void revealEasy();
@@ -143,6 +153,13 @@ public:
   std::expected<CardPosition, Error> search(const CardCode &code);
   std::expected<bool, Error> isSetLegal(const CardPosition &pos,
                                         const Card &card);
+
+private:
+  class FoundationCard : public Card {
+  public:
+    FoundationCard(const Card &card);
+    ft::Component component() const override;
+  };
 
 private:
   ft::Component placeholder(size_t index);

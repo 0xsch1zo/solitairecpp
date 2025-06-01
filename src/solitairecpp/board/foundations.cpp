@@ -13,6 +13,45 @@ Foundations::Foundations(MoveManager &moveManager,
     component_->Add(placeholder(i));
 }
 
+Foundations::FoundationCard::FoundationCard(const Card &card) : Card(card) {
+  component_ = ft::Button({.on_click =
+                               [=, *this] {
+                                 std::thread([*this] {
+                                   moveManager_.setMoveTarget(code());
+                                 }).detach();
+                               },
+                           .transform =
+                               [=, *this](const ft::EntryState state) {
+                                 auto element = ft::text(art_) | ft::center;
+                                 element |= cardWidth | cardHeight;
+                                 element |= ft::border;
+
+                                 switch (color_) {
+                                 case CardColor::Red:
+                                   element |= ft::color(ft::Color::Red);
+                                   break;
+                                 case CardColor::Black:
+                                   element |= ft::color(ft::Color::GrayDark);
+                                   break;
+                                 }
+
+                                 if (!moveManager_.moveTransactionOpen())
+                                   return element;
+
+                                 if (state.active) {
+                                   element |= ft::bold;
+                                 }
+                                 if (state.focused) {
+                                   element |= ft::inverted;
+                                 }
+                                 return element;
+                               }});
+}
+
+ft::Component Foundations::FoundationCard::component() const {
+  return component_;
+}
+
 // empty card field. contiainer vertical is used because the lib doesn't
 // offer a way to insert components at an index from what I know
 ft::Component Foundations::placeholder(size_t index) {
@@ -30,10 +69,15 @@ ft::Component Foundations::placeholder(size_t index) {
                          element |= Card::cardWidth | Card::cardHeight;
                          element |= ft::border;
 
+                         // aware of what it seems like repetition, it's needed
+                         if (!moveManager_.moveTransactionOpen())
+                           return element;
+
                          if (state.active)
                            element |= ft::bold;
                          if (state.focused)
                            element |= ft::inverted;
+
                          if (moveManager_.moveTransactionOpen())
                            element |= ft::color(ft::Color::Green);
 

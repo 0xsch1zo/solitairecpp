@@ -109,12 +109,6 @@ private:
   CardType type_;
 };
 
-class FoundationCard : public Card {
-public:
-  FoundationCard(const Card &card);
-  ft::Component component() const override;
-};
-
 typedef std::vector<Card> Cards;
 
 // wrapper around std::vector

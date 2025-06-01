@@ -1,8 +1,9 @@
-#include "solitairecpp/cards.hpp"
+#include <ftxui/component/component.hpp>
+#include <ftxui/component/component_options.hpp>
 #include <random>
-#include <ranges>
 #include <solitairecpp/board.hpp>
 #include <solitairecpp/move_manager.hpp>
+#include <thread>
 
 namespace solitairecpp {
 
@@ -15,6 +16,51 @@ ReserveStack::ReserveStack(Difficulty mode, MoveManager &moveManager,
 
   hiddenCards_.reserve(cards.size());
   hiddenCards_.append_range(cards);
+}
+
+ReserveStack::ReserveStackCard::ReserveStackCard(
+    const Card &card, const ReserveStack &reserveStack)
+    : Card(card), reserveStack_{reserveStack} {
+  std::shared_ptr<int> index = std::make_shared<int>();
+  component_ = ft::Button(
+      {.on_click =
+           [=, *this] {
+             if (*index !=
+                 reserveStack_.viewableCardsComponent_->ChildCount() - 1)
+               return;
+             std::thread([*this] {
+               moveManager_.cardSelected(code());
+             }).detach();
+           },
+       .transform =
+           [=, *this](const ft::EntryState state) {
+             *index = state.index;
+             auto element = ft::text(art_) | ft::center;
+             element |= cardWidth | cardHeight;
+             element |= ft::border;
+             switch (color_) {
+             case CardColor::Red:
+               element |= ft::color(ft::Color::Red);
+               break;
+             case CardColor::Black:
+               element |= ft::color(ft::Color::GrayDark);
+               break;
+             }
+
+             if (state.index !=
+                 reserveStack_.viewableCardsComponent_->ChildCount() - 1)
+               return element;
+
+             if (state.active)
+               element |= ft::bold;
+             if (state.focused)
+               element |= ft::inverted;
+             return element;
+           }});
+}
+
+ft::Component ReserveStack::ReserveStackCard::component() const {
+  return component_;
 }
 
 void ReserveStack::moveToHiddenAndShuffle() {
@@ -51,7 +97,12 @@ void ReserveStack::revealHard() {
   }
 
   viewableCardsComponent_->DetachAllChildren();
-  viewableCardsComponent_->Add(viewedCards_.back().component());
+  for (size_t i{std::min(hardDifficultyViewableAmount, viewedCards_.size())};
+       i > 0 && !viewedCards_.empty(); i--) {
+    ReserveStackCard reserveStackCard(viewedCards_.at(viewedCards_.size() - i),
+                                      *this);
+    viewableCardsComponent_->Add(reserveStackCard.component());
+  }
 }
 
 void ReserveStack::reveal() {
@@ -126,8 +177,10 @@ std::expected<void, Error> ReserveStack::deleteTopCard() {
   if (viewableCardsComponent_->ChildCount() == 0 || viewedCards_.size() == 0)
     return std::unexpected(ErrorInvalidCardIndex().error());
 
-  viewableCardsComponent_->DetachAllChildren();
+  viewableCardsComponent_->ChildAt(viewableCardsComponent_->ChildCount() - 1)
+      ->Detach();
   viewedCards_.erase(viewedCards_.end() - 1);
+
   return std::expected<void, Error>();
 }
 
@@ -150,16 +203,37 @@ std::expected<void, Error> ReserveStack::setTopCard(const Card &card) {
 std::expected<void, Error> ReserveStack::rollbackCard() {
   if (viewedCards_.empty())
     return std::unexpected(ErrorInvalidCardIndex().error());
+  if (mode_ == Difficulty::Easy) {
+    hiddenCards_.emplace_back(viewedCards_.back());
 
-  auto cardToRollback = viewedCards_.back();
-  hiddenCards_.emplace_back(cardToRollback);
+    auto deleteSuccess =
+        deleteTopCard(); // it's supposed to be used for somehting else, but why
+                         // don't reuse it
+    if (!deleteSuccess)
+      return std::unexpected(deleteSuccess.error());
 
-  auto deleteSuccess = deleteTopCard();
-  if (!deleteSuccess)
-    return std::unexpected(deleteSuccess.error());
+    if (!viewedCards_.empty())
+      viewableCardsComponent_->Add(viewedCards_.back().component());
+  } else {
+    hiddenCards_.insert(
+        hiddenCards_.begin(),
+        viewedCards_.end() -
+            std::min<size_t>(viewedCards_.size(), hardDifficultyViewableAmount),
+        viewedCards_.end());
 
-  if (!viewedCards_.empty())
-    viewableCardsComponent_->Add(viewedCards_.back().component());
+    viewableCardsComponent_->DetachAllChildren();
+    viewedCards_.erase(
+        viewedCards_.end() -
+            std::min(viewedCards_.size(), hardDifficultyViewableAmount),
+        viewedCards_.end());
+
+    for (size_t i{std::min(hardDifficultyViewableAmount, viewedCards_.size())};
+         i > 0 && !viewedCards_.empty(); i--) {
+      ReserveStackCard reserveStackCard(
+          viewedCards_.at(viewedCards_.size() - i), *this);
+      viewableCardsComponent_->Add(reserveStackCard.component());
+    }
+  }
 
   return std::expected<void, Error>();
 }
