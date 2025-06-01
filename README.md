@@ -14,6 +14,9 @@ cd build
 make -j
 ```
 ## The friendly manual
+> [!TIP]
+> The screen for choosing the difficulty is kind of broken for mouse, because of a small bug in the lib, please use keyboard instead(arrows or hjkl).
+
 The interface should be straight forward there are butttons for most of actions. But there remain some that are keybinds.
 <ul>
 <li>Press Q or Ctrl+C anywhere to exit the current screen</li>
