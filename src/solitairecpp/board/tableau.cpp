@@ -10,7 +10,7 @@ Tableau::Tableau(StartCards cards, MoveManager &moveManager)
   size_t rowSize = 1;
   for (auto &cardRow : tableau_) {
     std::vector cardRowCards(cardsVec.begin(), cardsVec.begin() + rowSize);
-    cardRowCards.back().show(); // The last card is visible
+    cardRowCards.back().showWithoutStatusChange(); // The last card is visible
     cardRow.appendCore(cardRowCards);
     cardsVec.erase(cardsVec.begin(), cardsVec.begin() + rowSize);
     rowSize++;

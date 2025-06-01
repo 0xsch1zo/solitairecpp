@@ -100,16 +100,19 @@ public:
                           // no matter the difficulty
 
 public:
-  ReserveStack(Difficulty mode, StartCards cards); // Copying on purpose
+  ReserveStack(Difficulty mode, MoveManager &moveManager,
+               StartCards cards); // Copying on purpose
   void reveal();
   ft::Component component();
   std::expected<CardPosition, Error> searchViewable(const CardCode &code);
   std::expected<Card, Error> getTopCard();
   std::expected<void, Error> deleteTopCard();
   std::expected<void, Error> setTopCard(const Card &card);
+  std::expected<void, Error> rollbackCard();
 
 private:
   void moveToHiddenAndShuffle();
+  ft::Component placeholder();
   void revealEasy();
   void revealHard();
 
@@ -119,6 +122,7 @@ private:
   Cards hiddenCards_;
   Cards viewedCards_;
   ft::Component viewableCardsComponent_;
+  MoveManager &moveManager_;
 };
 
 class Foundations {

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 #include <ftxui/dom/elements.hpp>
@@ -42,7 +43,11 @@ Board::Board(Difficulty mode, GameCallbacks callbacks)
       [&]<std::size_t... Is>(std::index_sequence<Is...>) {
         return ReserveStack::StartCards{{deck.at(Is)...}};
       }(std::make_index_sequence<ReserveStack::startCardsSize>{});
-  reserveStack_ = std::make_unique<ReserveStack>(mode, reserveStackCards);
+  reserveStack_ =
+      std::make_unique<ReserveStack>(mode, *moveManager_, reserveStackCards);
+
+  foundations_ =
+      std::make_unique<Foundations>(*moveManager_, gameCallbacks_.onGameWon);
 }
 
 ft::Component Board::component() const {
@@ -51,7 +56,7 @@ ft::Component Board::component() const {
   });
   auto sidepanel = ft::Container::Vertical(
       {foundations_->component(), reserveStack_->component(), moveCounter,
-       ft::Button("Revert move", [&] { moveManager_->rollback(); }),
+       moveManager_->rollbackButton(),
        ft::Button("View leaderboard", gameCallbacks_.viewLeadearBoard,
                   ft::ButtonOption::Border()),
        ft::Button("Restart game", gameCallbacks_.restartGame,

@@ -1,39 +1,72 @@
+#include <ftxui/dom/elements.hpp>
 #include <solitairecpp/board.hpp>
 #include <solitairecpp/move_manager.hpp>
 #include <stdexcept>
 
 namespace solitairecpp {
 
-bool MoveManager::isRollbackBlocked() const { return history_.empty(); }
+ft::Component MoveManager::rollbackButton() {
+  return ft::Button("Revert move(Up to 3 moves)",
+                    [&] {
+                      if (!history_.empty())
+                        rollback();
+                    },
+                    {.transform = [&](const ft::EntryState &state) {
+                      auto element = ft::text(state.label) | ft::border;
+                      if (history_.empty())
+                        return element | ft::color(ft::Color::GrayDark);
+
+                      if (state.active)
+                        element |= ft::bold;
+                      if (state.focused)
+                        element |= ft::inverted;
+
+                      return element;
+                    }});
+}
 
 void MoveManager::rollback() {
   if (history_.empty())
     return;
 
   auto transaction = history_.back();
+  history_.erase(history_.end() - 1);
+  // Ok this may look weird, but that's C++
   if (std::holds_alternative<Tableau::CardPosition>(transaction.to) &&
       std::holds_alternative<Tableau::CardPosition>(transaction.from)) {
     rollbackHelper(std::get<Tableau::CardPosition>(transaction.to),
                    std::get<Tableau::CardPosition>(transaction.from));
+
   } else if (std::holds_alternative<Foundations::CardPosition>(
                  transaction.to) &&
              std::holds_alternative<Tableau::CardPosition>(transaction.from)) {
     rollbackHelper(std::get<Foundations::CardPosition>(transaction.to),
                    std::get<Tableau::CardPosition>(transaction.from));
+
   } else if (std::holds_alternative<Tableau::CardPosition>(transaction.to) &&
              std::holds_alternative<ReserveStack::CardPosition>(
                  transaction.from)) {
     rollbackHelper(std::get<Tableau::CardPosition>(transaction.to),
                    std::get<ReserveStack::CardPosition>(transaction.from));
+
   } else if (std::holds_alternative<Foundations::CardPosition>(
                  transaction.to) &&
              std::holds_alternative<ReserveStack::CardPosition>(
                  transaction.from)) {
     rollbackHelper(std::get<Foundations::CardPosition>(transaction.to),
                    std::get<ReserveStack::CardPosition>(transaction.from));
+
+  } else if (std::holds_alternative<ReserveStack::CardPosition>(
+                 transaction.to) &&
+             std::holds_alternative<ReserveStack::CardPosition>(
+                 transaction.from)) {
+    rollbackHelper(std::get<ReserveStack::CardPosition>(transaction.to),
+                   std::get<ReserveStack::CardPosition>(transaction.from));
   } else {
     throw std::runtime_error("Illegal rollback operation");
   }
+
+  moveCount_--;
 }
 
 void MoveManager::rollbackHelper(const Tableau::CardPosition &from,
@@ -89,4 +122,12 @@ void MoveManager::rollbackHelper(const Foundations::CardPosition &from,
   if (!setSuccess)
     throw std::runtime_error(setSuccess.error()->what());
 }
+
+void MoveManager::rollbackHelper(const ReserveStack::CardPosition &from,
+                                 const ReserveStack::CardPosition &to) {
+  auto rollbackSuccess = board_.reserveStack().rollbackCard();
+  if (!rollbackSuccess)
+    throw std::runtime_error(rollbackSuccess.error()->what());
+}
+
 }; // namespace solitairecpp

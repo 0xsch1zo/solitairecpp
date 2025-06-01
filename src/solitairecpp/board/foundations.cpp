@@ -51,7 +51,10 @@ std::expected<Card, Error> Foundations::acquireCard(const CardPosition &pos) {
     return std::unexpected(ErrorInvalidCardIndex().error());
 
   auto card = foundation.back();
-  foundation.erase(foundation.end());
+  foundation.erase(foundation.end() - 1);
+  component_->ChildAt(pos.foundationIndex)->DetachAllChildren();
+  component_->ChildAt(pos.foundationIndex)
+      ->Add(placeholder(pos.foundationIndex));
   return card;
 }
 

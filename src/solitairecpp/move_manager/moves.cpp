@@ -74,6 +74,9 @@ std::expected<void, Error> MoveManager::Move() {
       endTransaction();
       return std::unexpected(success.error());
     }
+  } else if (std::holds_alternative<ReserveStack::CardPosition>(from) &&
+             std::holds_alternative<ReserveStack::CardPosition>(to)) {
+    /* do nothing because reserve stack will deal with this */
   } else {
     endTransaction();
     return std::unexpected(ErrorIllegalMove().error());
@@ -213,18 +216,22 @@ void MoveManager::setMoveTarget(const CardCode &code) {
   setMoveTarget(position.value());
 }
 
-void MoveManager::cardSelected(const CardCode &code) {
+void MoveManager::setMoveOrigin(const CardPosition &pos) {
   // another move started so we reset the erroneusTarget_
   if (erroneusTarget_.load().has_value())
     erroneusTarget_ = std::nullopt;
 
   // Find the thing
+  if (moveFrom_.load() == std::nullopt)
+    moveFrom_ = pos;
+}
+
+void MoveManager::cardSelected(const CardCode &code) {
   if (moveFrom_.load() == std::nullopt) {
     auto position = board_.search(code);
     if (!position)
       throw std::runtime_error(position.error()->what());
-
-    moveFrom_ = position.value();
+    setMoveOrigin(position.value());
   }
 }
 

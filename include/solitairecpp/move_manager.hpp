@@ -18,16 +18,17 @@ public:
   MoveManager(const Board &elements);
 
   void cardSelected(const CardCode &code);
+  void setMoveOrigin(const CardPosition &code);
   void setMoveTarget(const CardCode &code);
   void setMoveTarget(const CardPosition &pos);
 
   bool isMoveTarget(const CardPosition &pos) const;
   bool isTargetError(const CardPosition &pos) const;
   bool moveTransactionOpen() const;
-  bool isRollbackBlocked() const;
   size_t moveCount() const;
 
-  void rollback();
+  ft::Component rollbackButton();
+
   ft::ComponentDecorator moveTransactionCanceledListener();
 
 private:
@@ -48,6 +49,8 @@ private:
   std::expected<void, Error> moveHelper(const ReserveStack::CardPosition &from,
                                         const Foundations::CardPosition &to);
 
+  void rollback();
+
   // Yes the equivalents for rollbacks are needed and aren't just repetition
   void rollbackHelper(const Tableau::CardPosition &from,
                       const Tableau::CardPosition &to);
@@ -57,6 +60,9 @@ private:
                       const ReserveStack::CardPosition &to);
   void rollbackHelper(const Foundations::CardPosition &from,
                       const ReserveStack::CardPosition &to);
+  void rollbackHelper(const ReserveStack::CardPosition &from,
+                      const ReserveStack::CardPosition &to);
+
   void endTransaction();
 
 private:

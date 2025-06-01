@@ -1,11 +1,15 @@
+#include "solitairecpp/cards.hpp"
 #include <random>
+#include <ranges>
 #include <solitairecpp/board.hpp>
 #include <solitairecpp/move_manager.hpp>
 
 namespace solitairecpp {
 
-ReserveStack::ReserveStack(Difficulty mode, StartCards cards)
-    : mode_{mode}, viewableCardsComponent_{ft::Container::Horizontal({})} {
+ReserveStack::ReserveStack(Difficulty mode, MoveManager &moveManager,
+                           StartCards cards)
+    : mode_{mode}, viewableCardsComponent_{ft::Container::Horizontal({})},
+      moveManager_{moveManager} {
   for (auto &card : cards)
     card.show();
 
@@ -23,14 +27,15 @@ void ReserveStack::moveToHiddenAndShuffle() {
 }
 
 void ReserveStack::revealEasy() {
-  viewedCards_.emplace_back(hiddenCards_.front());
-  hiddenCards_.erase(hiddenCards_.begin());
+  viewedCards_.emplace_back(hiddenCards_.back());
+  hiddenCards_.erase(hiddenCards_.end() - 1);
 
   if (viewableCardsComponent_->ChildCount() > 0)
     viewableCardsComponent_->ChildAt(0)->Detach();
   viewableCardsComponent_->Add(viewedCards_.back().component());
 }
 
+// fix this
 void ReserveStack::revealHard() {
   if (hiddenCards_.size() < hardDifficultyViewableAmount) {
     viewedCards_.insert(viewedCards_.end(), hiddenCards_.begin(),
@@ -63,6 +68,9 @@ void ReserveStack::reveal() {
     revealHard();
     break;
   }
+
+  moveManager_.setMoveOrigin(CardPosition{});
+  moveManager_.setMoveTarget(CardPosition{});
 }
 
 ft::Component ReserveStack::component() {
@@ -126,17 +134,33 @@ std::expected<void, Error> ReserveStack::deleteTopCard() {
 std::expected<void, Error> ReserveStack::setTopCard(const Card &card) {
   switch (mode_) {
   case Difficulty::Easy:
-    if (!viewedCards_.empty() || viewableCardsComponent_->ChildCount() == 1)
+    if (viewableCardsComponent_->ChildCount() == 1)
       return std::unexpected(ErrorIllegalMove().error());
     break;
   case Difficulty::Hard:
-    if (viewedCards_.size() == hardDifficultyViewableAmount ||
-        viewableCardsComponent_->ChildCount() == hardDifficultyViewableAmount)
+    if (viewableCardsComponent_->ChildCount() == hardDifficultyViewableAmount)
       return std::unexpected(ErrorIllegalMove().error());
     break;
   }
   viewedCards_.emplace_back(card);
   viewableCardsComponent_->Add(card.component());
+  return std::expected<void, Error>();
+}
+
+std::expected<void, Error> ReserveStack::rollbackCard() {
+  if (viewedCards_.empty())
+    return std::unexpected(ErrorInvalidCardIndex().error());
+
+  auto cardToRollback = viewedCards_.back();
+  hiddenCards_.emplace_back(cardToRollback);
+
+  auto deleteSuccess = deleteTopCard();
+  if (!deleteSuccess)
+    return std::unexpected(deleteSuccess.error());
+
+  if (!viewedCards_.empty())
+    viewableCardsComponent_->Add(viewedCards_.back().component());
+
   return std::expected<void, Error>();
 }
 

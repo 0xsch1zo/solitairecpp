@@ -86,7 +86,8 @@ public:
   Card &operator=(const Card &other);
 
   void show();
-  void hide();
+  void showWithoutStatusChange(); // Used for init
+  void hideRollback();
   CardCode code() const;
   virtual ft::Component component() const;
   CardColor color() const;
@@ -95,6 +96,7 @@ public:
   static inline const auto cardHeight = ft::size(ft::HEIGHT, ft::EQUAL, 1);
 
 protected:
+  bool hiddenStatusChanged = false;
   ft::Component component_;
   CardColor color_;
   MoveManager &moveManager_;

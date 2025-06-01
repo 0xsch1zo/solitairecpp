@@ -77,9 +77,20 @@ Card &Card::operator=(const Card &other) {
   return *this;
 }
 
-void Card::show() { *hidden_ = false; }
+void Card::showWithoutStatusChange() { *hidden_ = false; }
 
-void Card::hide() { *hidden_ = true; }
+void Card::show() {
+  if (*hidden_) { // To presereve hiddenStatusChanged
+    hiddenStatusChanged = true;
+    *hidden_ = false;
+  }
+}
+
+void Card::hideRollback() {
+  if (hiddenStatusChanged) // Only when a card's status was changed by the user
+                           // we can hide it again
+    *hidden_ = true;
+}
 
 ft::Component Card::component() const { return std::move(component_); }
 
@@ -186,7 +197,7 @@ std::expected<void, Error> CardRow::append(const Cards &cards) {
 
 void CardRow::appendRollback(const Cards &cards) {
   if (!cards_.empty())
-    cards_.back().hide(); // Hide the previous one
+    cards_.back().hideRollback(); // Hide the previous one
 
   appendCore(cards);
 }
@@ -215,7 +226,7 @@ std::expected<void, Error> CardRow::deleteFrom(const CardPosition &pos) {
 ft::Component CardRow::component() const {
   auto moveTargetBar = ft::Button(
       {.on_click =
-           [*this] {
+           [this] {
              if (!moveManager_.moveTransactionOpen())
                return;
              moveManager_.setMoveTarget(Tableau::CardPosition{
@@ -224,7 +235,7 @@ ft::Component CardRow::component() const {
                                                // about to beadded
            },
        .transform =
-           [*this](const ft::EntryState &state) {
+           [this](const ft::EntryState &state) {
              auto element = ft::separator();
 
              // should not focus if transaction is not open
