@@ -9,6 +9,7 @@ ftxui(fetchContent)
 ## Build
 ```sh
 git clone https://github.com/0xsch1zo/solitairecpp
+cd solitairecpp/
 cmake . -B build
 cd build
 make -j
